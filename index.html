@@ -244,38 +244,45 @@ main{padding:16px 16px 24px}
 .ta::placeholder{color:var(--faint)}
 
 /* ─────────── quick ─────────── */
-.qclock{
-  text-align:center;padding:8px 0 20px;
+.qgrp{margin-bottom:16px}
+.qgrp-hd{
+  font-size:11px;font-weight:600;color:var(--mute);
+  letter-spacing:.08em;margin:0 4px 6px;
+  display:flex;align-items:center;gap:6px;
 }
-.qclock-t{font-size:38px;font-weight:300;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1}
-.qclock-d{font-size:12px;color:var(--mute);margin-top:4px}
+.qgrp-hd .n{margin-left:auto;font-weight:400;color:var(--faint);letter-spacing:0}
+.qclock{
+  text-align:center;padding:4px 0 14px;
+}
+.qclock-t{font-size:30px;font-weight:300;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1}
+.qclock-d{font-size:12px;color:var(--mute);margin-top:3px}
 
-.qgrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.qgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
 .qbtn{
   position:relative;display:flex;flex-direction:column;align-items:flex-start;
-  gap:2px;padding:14px 14px;background:var(--card);
+  gap:2px;padding:11px 13px;background:var(--card);
   border:1px solid var(--line);border-radius:var(--r-lg);
   cursor:pointer;font:inherit;text-align:left;transition:.12s;
   -webkit-tap-highlight-color:transparent;
 }
 .qbtn:active{transform:scale(.98);background:var(--sunken)}
-.qbtn-ico{font-size:19px;line-height:1;margin-bottom:3px}
+.qbtn-ico{font-size:17px;line-height:1;margin-bottom:2px}
 .qbtn-l{font-size:13px;font-weight:500;color:var(--ink)}
 .qbtn-s{font-size:11px;color:var(--mute)}
 .qbtn-badge{
-  position:absolute;top:12px;right:12px;font-size:11px;
+  position:absolute;top:10px;right:11px;font-size:11px;
   color:var(--pri);font-variant-numeric:tabular-nums;
 }
-.qbtn.wide{grid-column:1/-1;flex-direction:row;align-items:center;gap:12px;padding:12px 14px}
+.qbtn.wide{grid-column:1/-1;flex-direction:row;align-items:center;gap:12px;padding:10px 14px}
 .qbtn.wide .qbtn-ico{margin-bottom:0}
 .qbtn.wide .qbtn-txt{display:flex;flex-direction:column}
 .qbtn[disabled]{opacity:.38;pointer-events:none}
 
 .tl{position:relative;padding-left:18px}
 .tl::before{content:'';position:absolute;left:3px;top:8px;bottom:8px;width:1px;background:var(--line)}
-.tl-i{position:relative;display:flex;align-items:baseline;gap:10px;padding:7px 0}
+.tl-i{position:relative;display:flex;align-items:baseline;gap:10px;padding:6px 0}
 .tl-i::before{
-  content:'';position:absolute;left:-18px;top:14px;width:7px;height:7px;
+  content:'';position:absolute;left:-18px;top:13px;width:7px;height:7px;
   border-radius:50%;background:var(--line-strong);border:1.5px solid var(--page);
 }
 .tl-i[data-k="sleep"]::before{background:var(--c-sleep)}
@@ -801,12 +808,12 @@ function vQuick(){
   let o='<div class="qclock"><div class="qclock-t num">'+T(n.h,n.m)+'</div>'
     +'<div class="qclock-d">'+(S.date===td()?'今日':S.date.replace(/-/g,'/'))+'（'+dw(S.date)+'）</div></div>';
 
-  o+='<div class="grp"><div class="grp-hd">睡眠</div><div class="qgrid">'
+  o+='<div class="qgrp"><div class="qgrp-hd">睡眠</div><div class="qgrid">'
     +qb('🌙','入眠','今の時刻で記録','sleep_start',lastStart,false)
     +qb('☀️','起床','今の時刻で記録','sleep_end',lastWake,!canWake)
     +'</div></div>';
 
-  o+='<div class="grp"><div class="grp-hd">食事</div><div class="qgrid">'
+  o+='<div class="qgrp"><div class="qgrp-hd">食事</div><div class="qgrid">'
     +qb('🍚','昼食','今の時刻で記録','lunch',L.lunch.h!==''?T(L.lunch.h,L.lunch.m):'',false)
     +qb('🍲','夕食','今の時刻で記録','dinner',L.dinner.h!==''?T(L.dinner.h,L.dinner.m):'',false)
     +'<button class="qbtn wide" onclick="q(\'snack\')"><span class="qbtn-ico">🍪</span>'
@@ -815,12 +822,12 @@ function vQuick(){
     +'</div></div>';
 
   const md=e.meds.filter(m=>m.name==='モディオダール'),pm=e.meds.filter(m=>m.name==='ロキソニン');
-  o+='<div class="grp"><div class="grp-hd">服薬</div><div class="qgrid">'
+  o+='<div class="qgrp"><div class="qgrp-hd">服薬</div><div class="qgrid">'
     +qb('💊','モディオダール','1錠を記録','modafinil',md.length?T(md.slice(-1)[0].h,md.slice(-1)[0].m):'',false)
     +qb('💊','ロキソニン','1錠を記録','loxonin',pm.length?T(pm.slice(-1)[0].h,pm.slice(-1)[0].m):'',false)
     +'</div></div>';
 
-  o+='<div class="grp"><div class="grp-hd">副作用'+(e.se.list.length?'<span class="n">'+e.se.list.length+'</span>':'')+'</div><div class="card"><div class="chips" style="padding:12px 14px">'
+  o+='<div class="qgrp"><div class="qgrp-hd">副作用'+(e.se.list.length?'<span class="n">'+e.se.list.length+'</span>':'')+'</div><div class="card"><div class="chips" style="padding:11px 13px">'
     +SE.map(x=>'<button class="chip" onclick="seQuick(\''+x[0]+'\')">'+x[1]+'</button>').join('')
     +'</div></div></div>';
 
@@ -850,7 +857,7 @@ function vQuick(){
   tl.sort((a,b)=>a.t.localeCompare(b.t));
 
   if(tl.length){
-    o+='<div class="grp"><div class="grp-hd">本日の記録<span class="n">'+tl.length+'</span></div><div class="tl">'
+    o+='<div class="qgrp"><div class="qgrp-hd">本日の記録<span class="n">'+tl.length+'</span></div><div class="tl">'
       +tl.map(x=>'<div class="tl-i" data-k="'+x.k+'"><span class="tl-t num">'+x.t+'</span><span class="tl-l">'+esc(x.l)+'</span></div>').join('')
       +'</div></div>';
   }
@@ -963,7 +970,11 @@ function vSet(){
     +'<div style="margin-top:10px;font-size:11px;line-height:2;font-family:ui-monospace,monospace;color:var(--body);word-break:break-all">'
     +[['sleep_start','入眠'],['sleep_end','起床'],['lunch','昼食'],['dinner','夕食'],['snack','おやつ'],['modafinil','モディオダール'],['loxonin','ロキソニン']]
       .map(x=>'<div style="display:flex;gap:8px;padding:3px 0"><span style="width:74px;flex-shrink:0;font-family:inherit;color:var(--ink)">'+x[1]+'</span><span style="color:var(--pri)">?quick='+x[0]+'</span></div>').join('')
-    +'</div></div></div>';
+    +'</div>'
+    +'<p class="set-note" style="margin-top:10px;font-weight:600;color:var(--ink)">睡眠を1回で記録（ヘルスケア連携向け）</p>'
+    +'<p class="set-note" style="margin-top:2px">就寝・起床が両方すでに確定しているデータ（ヘルスケアの睡眠データなど）を転記する場合は、2回に分けず下記を1回だけ開いてください。「入眠→起床」のペア照合に頼らないので確実です。</p>'
+    +'<div class="shortcut-box" style="margin-top:8px"><div class="shortcut-url" style="width:100%">?quick=sleep_full&bedtime=[就寝HH:mm]&bed_date=[就寝yyyy-MM-dd]&time=[起床HH:mm]&date=[起床yyyy-MM-dd]</div></div>'
+    +'</div></div>';
 
   o+='<div class="set"><div class="set-h">記録一覧'+(all.length?'（'+all.length+'日）':'')+'</div>';
   if(!all.length){o+='<div class="set-b"><p class="set-note" style="color:var(--faint)">まだ記録がありません</p></div>';}
@@ -1164,13 +1175,28 @@ function seQuick(k){
 function urlAction(){
   const p=new URLSearchParams(location.search),a=p.get('quick');
   if(!a)return;
+  const M={sleep_start:1,sleep_end:1,sleep_full:1,lunch:1,dinner:1,snack:1,modafinil:1,loxonin:1};
+  if(!M[a])return;
+
+  if(a==='sleep_full'){
+    // 就寝・起床が両方確定済みのデータを1回で完了記録する（Health連携用）
+    const bt=parseT(p.get('bedtime')||''),wt=parseT(p.get('time')||'');
+    const bd=p.get('bed_date'),wd=p.get('date')||td();
+    if(!bt||!wt||!bd){history.replaceState(null,'',location.pathname);S.view='quick';return;}
+    S.date=wd;
+    E(wd).sleep.push({sh:bt.h,sm:bt.m,wh:wt.h,wm:wt.m});
+    put();
+    history.replaceState(null,'',location.pathname);
+    S.view='quick';
+    setTimeout(()=>toast('睡眠を記録しました '+T(bt.h,bt.m)+' → '+T(wt.h,wt.m)),300);
+    return;
+  }
+
   const tt=p.get('time'),d=p.get('date')||td();
   const t=tt?parseT(tt):now();
   if(!t)return;
   S.date=d;
   const e=E(d);
-  const M={sleep_start:1,sleep_end:1,lunch:1,dinner:1,snack:1,modafinil:1,loxonin:1};
-  if(!M[a])return;
   if(a==='sleep_start'){
     e.sleep.push({sh:t.h,sm:t.m,wh:'',wm:0});
     S.pending={date:d,sh:t.h,sm:t.m};putPending();
