@@ -227,6 +227,14 @@ main{padding:16px 16px 24px}
 .se-in:focus{background:#fff;border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-soft)}
 .se-in::placeholder{color:var(--faint)}
 .se-mark{width:7px;height:7px;border-radius:50%;background:var(--c-med);flex-shrink:0}
+.cfg-grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.cfg-flow{display:flex;flex-wrap:wrap;gap:6px}
+.cfg-tag{display:flex;align-items:center;gap:3px;padding:5px 6px 5px 11px;border-radius:14px;background:var(--sunken);border:1px solid var(--line)}
+.cfg-tag input{flex:1;min-width:0;border:none;background:none;font:inherit;font-size:12px;color:var(--ink);padding:0;outline:none}
+.cfg-tag button{flex-shrink:0;background:none;border:none;color:var(--faint);font-size:13px;cursor:pointer;padding:0 3px;line-height:1;border-radius:50%}
+.cfg-tag button:hover{color:var(--bad)}
+.cfg-add-tag{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:14px;background:none;border:1px dashed var(--line-strong);color:var(--faint);font:inherit;font-size:12px;cursor:pointer}
+.cfg-add-tag:hover{color:var(--body);border-color:var(--body)}
 .svbadge{font-size:10px;padding:3px 9px;border-radius:10px;border:1px solid var(--line);background:none;color:var(--faint);cursor:pointer;font:inherit;flex-shrink:0;transition:.15s}
 .svbadge:hover{border-color:var(--line-strong)}
 .svmini{display:flex;gap:4px}
@@ -981,34 +989,36 @@ function vSet(){
     +'<label class="abtn" style="cursor:pointer">JSONから読み込む<input type="file" accept=".json" hidden onchange="impJSON(this)"></label>'
     +'</div></div></div>';
 
-  o+='<div class="set"><div class="set-h">服薬の種類</div><div class="set-b">';
+  o+='<div class="set"><div class="set-h">服薬の種類</div><div class="set-b"><div class="cfg-flow">';
   S.cfg.meds.forEach((n,i)=>{
-    o+='<div class="li" style="background:var(--sunken);border-radius:8px;padding:7px 10px;margin-bottom:5px">'
-      +'<input class="se-in" style="flex:1" value="'+esc(n)+'" onchange="medCfgRename('+i+',this.value)">'
-      +'<button class="xbtn" onclick="medCfgDel('+i+')">×</button></div>';
+    o+='<div class="cfg-tag" style="width:'+Math.max(n.length+3,5)+'ch">'
+      +'<input value="'+esc(n)+'" onchange="medCfgRename('+i+',this.value)">'
+      +'<button onclick="medCfgDel('+i+')">×</button></div>';
   });
   if(S.edMedCfg){
-    o+='<div class="ed"><div class="ed-row">'
-      +'<input class="se-in" style="flex:1" placeholder="薬品名" value="'+esc(S.tmpMedCfg||'')+'" oninput="S.tmpMedCfg=this.value" onkeydown="if(event.key===\'Enter\')medCfgAdd()">'
-      +'</div><div class="ed-acts"><button class="btn-p" onclick="medCfgAdd()">追加</button><button class="btn-g" onclick="S.edMedCfg=false;S.tmpMedCfg=\'\';R()">取消</button></div></div>';
+    o+='<div class="cfg-tag" style="width:12ch">'
+      +'<input placeholder="薬品名" value="'+esc(S.tmpMedCfg||'')+'" oninput="S.tmpMedCfg=this.value" onblur="medCfgAdd()" onkeydown="if(event.key===\'Enter\')this.blur()" autofocus>'
+      +'</div>';
   }else{
-    o+='<button class="addrow" onclick="S.edMedCfg=true;S.tmpMedCfg=\'\';R()">＋ 服薬の種類を追加</button>';
+    o+='<button class="cfg-add-tag" onclick="S.edMedCfg=true;S.tmpMedCfg=\'\';R()">＋ 追加</button>';
   }
-  o+='</div></div>';
+  o+='</div></div></div>';
 
   o+='<div class="set"><div class="set-h">副作用の種類</div><div class="set-b">'
-    +'<p class="set-note" style="margin-bottom:8px">「その他」は自由記入の項目として常に残ります。</p>';
+    +'<p class="set-note" style="margin-bottom:8px">「その他」は自由記入の項目として常に残ります。</p>'
+    +'<div class="cfg-grid2">';
   S.cfg.se.forEach((x,i)=>{
-    o+='<div class="li" style="background:var(--sunken);border-radius:8px;padding:7px 10px;margin-bottom:5px">'
-      +'<input class="se-in" style="flex:1" value="'+esc(x.label)+'" onchange="seCfgRename('+i+',this.value)">'
-      +'<button class="xbtn" onclick="seCfgDel('+i+')">×</button></div>';
+    o+='<div class="cfg-tag">'
+      +'<input value="'+esc(x.label)+'" onchange="seCfgRename('+i+',this.value)">'
+      +'<button onclick="seCfgDel('+i+')">×</button></div>';
   });
+  o+='</div>';
   if(S.edSeCfg){
-    o+='<div class="ed"><div class="ed-row">'
-      +'<input class="se-in" style="flex:1" placeholder="症状名" value="'+esc(S.tmpSeCfg||'')+'" oninput="S.tmpSeCfg=this.value" onkeydown="if(event.key===\'Enter\')seCfgAdd()">'
-      +'</div><div class="ed-acts"><button class="btn-p" onclick="seCfgAdd()">追加</button><button class="btn-g" onclick="S.edSeCfg=false;S.tmpSeCfg=\'\';R()">取消</button></div></div>';
+    o+='<div class="cfg-tag" style="width:12ch;margin-top:6px">'
+      +'<input placeholder="症状名" value="'+esc(S.tmpSeCfg||'')+'" oninput="S.tmpSeCfg=this.value" onblur="seCfgAdd()" onkeydown="if(event.key===\'Enter\')this.blur()" autofocus>'
+      +'</div>';
   }else{
-    o+='<button class="addrow" onclick="S.edSeCfg=true;S.tmpSeCfg=\'\';R()">＋ 副作用の種類を追加</button>';
+    o+='<button class="cfg-add-tag" style="margin-top:6px" onclick="S.edSeCfg=true;S.tmpSeCfg=\'\';R()">＋ 追加</button>';
   }
   o+='</div></div>';
 
@@ -1171,8 +1181,8 @@ function mOk(){
 function mDel(i){E(S.date).meds.splice(i,1);put();R();}
 function medCfgAdd(){
   const n=(S.tmpMedCfg||'').trim();
-  if(!n){toast('薬品名を入力してください');return;}
-  if(S.cfg.meds.indexOf(n)>-1){toast('すでにあります');return;}
+  if(!n){S.edMedCfg=false;S.tmpMedCfg='';R();return;}
+  if(S.cfg.meds.indexOf(n)>-1){toast('すでにあります');S.edMedCfg=false;S.tmpMedCfg='';R();return;}
   S.cfg.meds.push(n);S.edMedCfg=false;S.tmpMedCfg='';putCfg();R();
 }
 function medCfgDel(i){S.cfg.meds.splice(i,1);putCfg();R();}
@@ -1182,7 +1192,7 @@ function medCfgRename(i,v){
 }
 function seCfgAdd(){
   const n=(S.tmpSeCfg||'').trim();
-  if(!n){toast('症状名を入力してください');return;}
+  if(!n){S.edSeCfg=false;S.tmpSeCfg='';R();return;}
   const key='c'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
   S.cfg.se.push({key,label:n});S.edSeCfg=false;S.tmpSeCfg='';putCfg();R();
 }
