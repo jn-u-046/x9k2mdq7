@@ -258,6 +258,11 @@ main{padding:16px 16px 24px}
 .qclock-d{font-size:12px;color:var(--mute);margin-top:3px}
 
 .qgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.qgrid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.qgrid3 .qbtn{padding:9px 6px;align-items:center;text-align:center}
+.qgrid3 .qbtn-l{font-size:12px}
+.qgrid3 .qbtn-s{display:none}
+.qgrid3 .qbtn-badge{position:static;display:block;margin-top:1px}
 .qbtn{
   position:relative;display:flex;flex-direction:column;align-items:flex-start;
   gap:2px;padding:11px 13px;background:var(--card);
@@ -813,12 +818,10 @@ function vQuick(){
     +qb('☀️','起床','今の時刻で記録','sleep_end',lastWake,!canWake)
     +'</div></div>';
 
-  o+='<div class="qgrp"><div class="qgrp-hd">食事</div><div class="qgrid">'
-    +qb('🍚','昼食','今の時刻で記録','lunch',L.lunch.h!==''?T(L.lunch.h,L.lunch.m):'',false)
-    +qb('🍲','夕食','今の時刻で記録','dinner',L.dinner.h!==''?T(L.dinner.h,L.dinner.m):'',false)
-    +'<button class="qbtn wide" onclick="q(\'snack\')"><span class="qbtn-ico">🍪</span>'
-    +'<span class="qbtn-txt"><span class="qbtn-l">おやつ</span><span class="qbtn-s">今の時刻で記録・複数可</span></span>'
-    +(L.extra.length?'<span class="qbtn-badge num">'+L.extra.length+'件</span>':'')+'</button>'
+  o+='<div class="qgrp"><div class="qgrp-hd">食事</div><div class="qgrid3">'
+    +qb3('🍚','昼食','lunch',L.lunch.h!==''?T(L.lunch.h,L.lunch.m):'')
+    +qb3('🍲','夕食','dinner',L.dinner.h!==''?T(L.dinner.h,L.dinner.m):'')
+    +qb3('🍪','おやつ','snack',L.extra.length?L.extra.length+'件':'')
     +'</div></div>';
 
   const md=e.meds.filter(m=>m.name==='モディオダール'),pm=e.meds.filter(m=>m.name==='ロキソニン');
@@ -868,6 +871,12 @@ function qb(ico,label,sub,act,badge,dis){
     +'<span class="qbtn-ico">'+ico+'</span>'
     +'<span class="qbtn-l">'+label+'</span>'
     +'<span class="qbtn-s">'+sub+'</span>'
+    +(badge?'<span class="qbtn-badge num">'+badge+'</span>':'')+'</button>';
+}
+function qb3(ico,label,act,badge){
+  return'<button class="qbtn" onclick="q(\''+act+'\')">'
+    +'<span class="qbtn-ico">'+ico+'</span>'
+    +'<span class="qbtn-l">'+label+'</span>'
     +(badge?'<span class="qbtn-badge num">'+badge+'</span>':'')+'</button>';
 }
 function q(a){
