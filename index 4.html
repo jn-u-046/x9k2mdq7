@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<title>睡眠日誌</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  /* surface */
+  --page:#f8f8f7;
+  --card:#ffffff;
+  --sunken:#f4f4f3;
+  --line:#e8e8e6;
+  --line-strong:#d8d8d5;
+
+  /* text */
+  --ink:#16181d;
+  --body:#4a5261;
+  --mute:#8b9099;
+  --faint:#b8bcc2;
+
+  /* accent */
+  --pri:#2b70ef;
+  --pri-soft:#eef3fe;
+  --pri-line:#cfe0fd;
+
+  /* chart palette */
+  --c-sleep:#2b70ef;
+  --c-doze:#8fb4f5;
+  --c-crash:#123a86;
+  --c-nap:#c3d7fb;
+  --c-med:#c8890f;
+  --c-meal:#16181d;
+  --c-se:#b8362a;
+
+  /* semantic */
+  --ok:#227a53;
+  --ok-soft:#ecf6f0;
+  --warn:#9a7205;
+  --warn-soft:#fdf7e5;
+  --bad:#b8362a;
+  --bad-soft:#fcf0ee;
+
+  --r-sm:6px;
+  --r:10px;
+  --r-lg:14px;
+}
+
+html{-webkit-text-size-adjust:100%}
+body{
+  font-family:'Inter',-apple-system,BlinkMacSystemFont,'Hiragino Sans','Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif;
+  background:var(--page);color:var(--ink);
+  font-size:14px;line-height:1.6;
+  font-feature-settings:'palt' 1;
+  -webkit-font-smoothing:antialiased;
+  min-height:100vh;
+}
+.num{font-variant-numeric:tabular-nums;letter-spacing:.01em}
+
+.app{max-width:480px;margin:0 auto;min-height:100vh;padding-bottom:calc(64px + env(safe-area-inset-bottom))}
+
+/* ─────────── header ─────────── */
+.hdr{
+  background:rgba(255,255,255,.88);backdrop-filter:saturate(180%) blur(12px);
+  border-bottom:1px solid var(--line);
+  padding:14px 20px 12px;position:sticky;top:0;z-index:40;
+}
+.hdr-in{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.hdr-title{font-size:15px;font-weight:600;letter-spacing:-.01em}
+.hdr-date{display:flex;align-items:center;gap:8px}
+.date-native{
+  font:inherit;font-size:13px;color:var(--body);background:none;border:none;
+  padding:2px 0;cursor:pointer;font-variant-numeric:tabular-nums;
+}
+.today-link{
+  font-size:12px;color:var(--pri);background:none;border:none;cursor:pointer;
+  font-family:inherit;padding:2px 0;
+}
+.today-link:disabled{color:var(--faint);cursor:default}
+
+/* ─────────── main ─────────── */
+main{padding:16px 16px 24px}
+
+.grp{margin-bottom:24px}
+.grp-hd{
+  font-size:11px;font-weight:600;color:var(--mute);
+  letter-spacing:.08em;margin:0 4px 8px;
+  display:flex;align-items:center;gap:6px;
+}
+.grp-hd .n{margin-left:auto;font-weight:400;color:var(--faint);letter-spacing:0}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden}
+.card + .card{margin-top:8px}
+.pad{padding:14px 16px}
+.hair{height:1px;background:var(--line)}
+
+/* ─────────── time field ─────────── */
+.tfield{
+  width:74px;padding:7px 0;text-align:center;
+  font:inherit;font-size:17px;font-weight:500;
+  font-variant-numeric:tabular-nums;letter-spacing:.02em;
+  background:var(--sunken);border:1px solid transparent;border-radius:var(--r-sm);
+  color:var(--ink);outline:none;transition:.15s;
+}
+.tfield:hover{border-color:var(--line-strong)}
+.tfield:focus{background:#fff;border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-soft)}
+.tfield::placeholder{color:var(--faint);font-weight:400;font-size:15px}
+
+/* ─────────── nested wake-period sub-rows ─────────── */
+.wksub{padding:0 16px 8px 34px}
+.wkchip{display:inline-flex;align-items:center;gap:5px;padding:3px 5px 3px 10px;margin:0 5px 5px 0;border-radius:14px;background:var(--sunken);border:1px solid var(--line);font-size:11px;color:var(--body)}
+.wkchip button{background:none;border:none;color:var(--faint);cursor:pointer;font-size:12px;padding:0 3px;line-height:1}
+.wkchip button:hover{color:var(--bad)}
+.wkadd{font-size:11px;color:var(--faint);background:none;border:none;cursor:pointer;font:inherit;padding:2px 0;text-decoration:underline;text-decoration-color:var(--line-strong);text-underline-offset:2px}
+.wkadd:hover{color:var(--body)}
+.wked{background:var(--sunken);border-radius:6px;padding:8px;margin-top:4px}
+
+/* ─────────── sleep rows ─────────── */
+.sblock + .sblock{border-top:1px solid var(--line)}
+.srow{display:flex;align-items:center;gap:10px;padding:11px 16px}
+.srow-idx{width:14px;font-size:11px;color:var(--faint);flex-shrink:0;font-variant-numeric:tabular-nums}
+.srow-arw{color:var(--faint);font-size:13px;flex-shrink:0}
+.srow-dur{
+  margin-left:auto;font-size:12px;color:var(--pri);
+  font-variant-numeric:tabular-nums;flex-shrink:0;
+}
+.xbtn{
+  background:none;border:none;cursor:pointer;color:var(--faint);
+  font-size:15px;line-height:1;padding:4px;flex-shrink:0;transition:color .15s;
+}
+.xbtn:hover{color:var(--bad)}
+
+.addrow{
+  width:100%;padding:11px 16px;background:none;border:none;border-top:1px solid var(--line);
+  color:var(--mute);font:inherit;font-size:13px;cursor:pointer;text-align:left;transition:.15s;
+}
+.addrow:hover{background:var(--sunken);color:var(--body)}
+.addrow:first-child{border-top:none}
+
+/* ─────────── list items ─────────── */
+.li{display:flex;align-items:center;gap:10px;padding:11px 16px}
+.li + .li{border-top:1px solid var(--line)}
+.li-tag{
+  font-size:11px;font-weight:500;padding:2px 8px;border-radius:20px;
+  background:var(--pri-soft);color:var(--pri);flex-shrink:0;
+}
+.li-tag.amber{background:#fdf7e5;color:var(--c-med)}
+.li-tag.rose{background:var(--bad-soft);color:var(--bad)}
+.li-main{flex:1;font-size:13px;min-width:0}
+.li-time{font-size:13px;color:var(--body);font-variant-numeric:tabular-nums;flex-shrink:0}
+
+/* ─────────── segmented ─────────── */
+.seg{display:flex;gap:6px;padding:12px 16px 0}
+.seg-btn{
+  flex:1;padding:8px 4px;border:1px solid var(--line);border-radius:var(--r-sm);
+  background:none;cursor:pointer;font:inherit;font-size:12px;color:var(--body);
+  transition:.15s;
+}
+.seg-btn:hover{border-color:var(--line-strong)}
+.seg-btn[aria-pressed="true"]{background:var(--pri-soft);border-color:var(--pri-line);color:var(--pri);font-weight:500}
+
+/* ─────────── inline editor ─────────── */
+.ed{background:var(--sunken);margin:12px 16px 14px;padding:12px;border-radius:var(--r)}
+.ed-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.ed-lbl{font-size:12px;color:var(--body);flex-shrink:0}
+.ed-acts{display:flex;gap:8px}
+.btn-p{
+  padding:7px 16px;background:var(--pri);color:#fff;border:none;border-radius:var(--r-sm);
+  font:inherit;font-size:12px;font-weight:500;cursor:pointer;transition:.15s;
+}
+.btn-p:hover{background:#2461d4}
+.btn-g{
+  padding:7px 12px;background:none;border:1px solid var(--line-strong);border-radius:var(--r-sm);
+  font:inherit;font-size:12px;color:var(--body);cursor:pointer;transition:.15s;
+}
+.btn-g:hover{background:#fff}
+.sel,.numf{
+  padding:7px 9px;background:#fff;border:1px solid var(--line-strong);border-radius:var(--r-sm);
+  font:inherit;font-size:13px;color:var(--ink);outline:none;
+}
+.sel:focus,.numf:focus{border-color:var(--pri)}
+.numf{width:56px;text-align:center;font-variant-numeric:tabular-nums}
+
+/* ─────────── scale (眠気) ─────────── */
+.scale{display:flex;gap:6px;padding:14px 16px}
+.sc{
+  flex:1;padding:10px 2px;border:1px solid var(--line);border-radius:var(--r-sm);
+  background:none;cursor:pointer;font:inherit;text-align:center;transition:.15s;
+}
+.sc:hover{border-color:var(--line-strong)}
+.sc-n{font-size:15px;font-weight:600;color:var(--body);font-variant-numeric:tabular-nums;line-height:1.2}
+.sc-l{font-size:10px;color:var(--mute);margin-top:1px}
+.sc[aria-pressed="true"]{border-width:1px}
+.sc[aria-pressed="true"][data-lv="1"],.sc[aria-pressed="true"][data-lv="2"]{background:var(--ok-soft);border-color:#bfe0cd}
+.sc[aria-pressed="true"][data-lv="1"] .sc-n,.sc[aria-pressed="true"][data-lv="2"] .sc-n,
+.sc[aria-pressed="true"][data-lv="1"] .sc-l,.sc[aria-pressed="true"][data-lv="2"] .sc-l{color:var(--ok)}
+.sc[aria-pressed="true"][data-lv="3"]{background:var(--warn-soft);border-color:#f0dfa8}
+.sc[aria-pressed="true"][data-lv="3"] .sc-n,.sc[aria-pressed="true"][data-lv="3"] .sc-l{color:var(--warn)}
+.sc[aria-pressed="true"][data-lv="4"],.sc[aria-pressed="true"][data-lv="5"]{background:var(--bad-soft);border-color:#f2c9c3}
+.sc[aria-pressed="true"][data-lv="4"] .sc-n,.sc[aria-pressed="true"][data-lv="5"] .sc-n,
+.sc[aria-pressed="true"][data-lv="4"] .sc-l,.sc[aria-pressed="true"][data-lv="5"] .sc-l{color:var(--bad)}
+
+/* ─────────── chips (副作用) ─────────── */
+.chips{display:flex;flex-wrap:wrap;gap:6px;padding:14px 16px 10px}
+.chip{
+  padding:7px 14px;border:1px solid var(--line);border-radius:20px;
+  background:none;cursor:pointer;font:inherit;font-size:12px;color:var(--body);
+  transition:.15s;-webkit-tap-highlight-color:transparent;
+}
+.chip:hover{border-color:var(--line-strong)}
+.chip:active{transform:scale(.96)}
+.chip[aria-pressed="true"]{background:var(--warn-soft);border-color:#eddfae;color:var(--warn);font-weight:500}
+.se-other{
+  display:flex;align-items:center;gap:10px;padding:0 16px 14px;
+}
+.se-other-l{font-size:12px;color:var(--mute);flex-shrink:0}
+.se-in{
+  flex:1;padding:7px 10px;background:var(--sunken);border:1px solid transparent;
+  border-radius:var(--r-sm);font:inherit;font-size:13px;color:var(--ink);outline:none;transition:.15s;
+}
+.se-in:hover{border-color:var(--line-strong)}
+.se-in:focus{background:#fff;border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-soft)}
+.se-in::placeholder{color:var(--faint)}
+.se-mark{width:7px;height:7px;border-radius:50%;background:var(--c-med);flex-shrink:0}
+.svbadge{font-size:10px;padding:3px 9px;border-radius:10px;border:1px solid var(--line);background:none;color:var(--faint);cursor:pointer;font:inherit;flex-shrink:0;transition:.15s}
+.svbadge:hover{border-color:var(--line-strong)}
+.svmini{display:flex;gap:4px}
+.svmini button{padding:6px 10px;font-size:11px;border:1px solid var(--line);border-radius:6px;background:none;color:var(--body);cursor:pointer;font:inherit;transition:.15s}
+.svmini button:hover{border-color:var(--line-strong)}
+.svmini button[aria-pressed="true"][data-sv="1"]{background:var(--ok-soft);border-color:#bfe0cd;color:var(--ok);font-weight:500}
+.svmini button[aria-pressed="true"][data-sv="2"]{background:var(--warn-soft);border-color:#f0dfa8;color:var(--warn);font-weight:500}
+.svmini button[aria-pressed="true"][data-sv="3"]{background:var(--bad-soft);border-color:#f2c9c3;color:var(--bad);font-weight:500}
+
+/* ─────────── textarea ─────────── */
+.ta{
+  width:100%;padding:12px 16px;background:none;border:none;
+  font:inherit;font-size:13px;color:var(--ink);resize:vertical;min-height:76px;outline:none;line-height:1.7;
+}
+.ta::placeholder{color:var(--faint)}
+
+/* ─────────── quick ─────────── */
+.qgrp{margin-bottom:16px}
+.qgrp-hd{
+  font-size:11px;font-weight:600;color:var(--mute);
+  letter-spacing:.08em;margin:0 4px 6px;
+  display:flex;align-items:center;gap:6px;
+}
+.qgrp-hd .n{margin-left:auto;font-weight:400;color:var(--faint);letter-spacing:0}
+.qclock{
+  text-align:center;padding:4px 0 14px;
+}
+.qclock-t{font-size:30px;font-weight:300;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1}
+.qclock-d{font-size:12px;color:var(--mute);margin-top:3px}
+
+.qgrid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.qgrid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px}
+.qgrid3 .qbtn{padding:9px 6px;align-items:center;text-align:center}
+.qgrid3 .qbtn-l{font-size:12px}
+.qgrid3 .qbtn-s{display:none}
+.qgrid3 .qbtn-badge{position:static;display:block;margin-top:1px}
+.qbtn{
+  position:relative;display:flex;flex-direction:column;align-items:flex-start;
+  gap:2px;padding:11px 13px;background:var(--card);
+  border:1px solid var(--line);border-radius:var(--r-lg);
+  cursor:pointer;font:inherit;text-align:left;transition:.12s;
+  -webkit-tap-highlight-color:transparent;
+}
+.qbtn:active{transform:scale(.98);background:var(--sunken)}
+.qbtn-ico{font-size:17px;line-height:1;margin-bottom:2px}
+.qbtn-l{font-size:13px;font-weight:500;color:var(--ink)}
+.qbtn-s{font-size:11px;color:var(--mute)}
+.qbtn-badge{
+  position:absolute;top:10px;right:11px;font-size:11px;
+  color:var(--pri);font-variant-numeric:tabular-nums;
+}
+.qbtn.wide{grid-column:1/-1;flex-direction:row;align-items:center;gap:12px;padding:10px 14px}
+.qbtn.wide .qbtn-ico{margin-bottom:0}
+.qbtn.wide .qbtn-txt{display:flex;flex-direction:column}
+.qbtn[disabled]{opacity:.38;pointer-events:none}
+
+.tl{position:relative;padding-left:18px}
+.tl::before{content:'';position:absolute;left:3px;top:8px;bottom:8px;width:1px;background:var(--line)}
+.tl-i{position:relative;display:flex;align-items:baseline;gap:10px;padding:6px 0}
+.tl-i::before{
+  content:'';position:absolute;left:-18px;top:13px;width:7px;height:7px;
+  border-radius:50%;background:var(--line-strong);border:1.5px solid var(--page);
+}
+.tl-i[data-k="sleep"]::before{background:var(--c-sleep)}
+.tl-i[data-k="med"]::before{background:var(--c-med)}
+.tl-i[data-k="meal"]::before{background:var(--c-meal)}
+.tl-i[data-k="nap"]::before{background:var(--c-doze)}
+.tl-i[data-k="se"]::before{background:var(--c-se)}
+.tl-t{font-size:13px;color:var(--body);font-variant-numeric:tabular-nums;width:44px;flex-shrink:0}
+.tl-l{font-size:13px;color:var(--ink)}
+
+/* ─────────── chart ─────────── */
+.mnav{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;padding:0 2px}
+.mnav-b{
+  width:30px;height:30px;background:none;border:1px solid var(--line);border-radius:var(--r-sm);
+  cursor:pointer;color:var(--body);font:inherit;font-size:12px;transition:.15s;
+  display:flex;align-items:center;justify-content:center;
+}
+.mnav-b:hover{background:var(--card);border-color:var(--line-strong)}
+.mnav-b[disabled]{opacity:.3;pointer-events:none}
+.mnav-l{font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
+
+.kpi{display:flex;gap:8px;margin-bottom:14px}
+.kpi-c{flex:1;background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:11px 8px;text-align:center}
+.kpi-v{font-size:17px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.kpi-k{font-size:10px;color:var(--mute);margin-top:1px}
+
+.ch{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);overflow:hidden}
+.ch-ax{display:flex;align-items:center;padding:8px 12px 5px;border-bottom:1px solid var(--line)}
+.ch-ax-l{width:34px;flex-shrink:0}
+.ch-ax-m{flex:1;position:relative;height:12px}
+.ch-ax-r{width:52px;flex-shrink:0;text-align:right;font-size:9px;color:var(--faint)}
+.tick{position:absolute;font-size:9px;color:var(--faint);transform:translateX(-50%);font-variant-numeric:tabular-nums;top:0}
+.tick.k{color:var(--mute)}
+
+.ch-r{display:flex;align-items:center;padding:0 12px;cursor:pointer;transition:background .1s;min-height:26px}
+.ch-r:hover{background:var(--sunken)}
+.ch-r.we{background:#fcfcfb}
+.ch-r.we:hover{background:var(--sunken)}
+.ch-r + .ch-r{border-top:1px solid #f2f2f0}
+.ch-d{width:34px;flex-shrink:0;display:flex;align-items:baseline;gap:3px;padding-right:6px}
+.ch-dn{font-size:12px;font-weight:500;font-variant-numeric:tabular-nums;line-height:1}
+.ch-dw{font-size:10px;color:var(--faint);line-height:1}
+.ch-dw.s{color:#b8362a}
+.ch-dw.t{color:#2b70ef}
+.ch-b{flex:1;height:18px;position:relative;background:var(--sunken);border-radius:3px;overflow:hidden}
+.gl{position:absolute;top:0;bottom:0;width:1px;background:#eaeae8;z-index:0}
+.gl.noon{background:#dededb}
+.bar{position:absolute;top:3px;bottom:3px;border-radius:2px;z-index:1;min-width:2px}
+.b-sleep{background:var(--c-sleep)}
+.b-wake{background:var(--page);border-left:1px solid var(--c-sleep);border-right:1px solid var(--c-sleep);z-index:2}
+.b-doze{background:repeating-linear-gradient(45deg,var(--c-doze),var(--c-doze) 2.5px,transparent 2.5px,transparent 5px)}
+.b-crash{background:var(--c-crash)}
+.b-nap{background:var(--c-nap)}
+.mk{position:absolute;z-index:3;transform:translateX(-50%);pointer-events:none}
+.mk-med{top:1px;width:0;height:0;border-left:3px solid transparent;border-right:3px solid transparent;border-bottom:5px solid var(--c-med)}
+.mk-meal{top:0;bottom:0;width:1.5px;background:var(--c-meal)}
+.mk-se{bottom:1px;width:5px;height:5px;border-radius:50%;background:var(--c-se)}
+.ch-x{width:52px;flex-shrink:0;display:flex;align-items:center;justify-content:flex-end;gap:5px}
+.dot{
+  width:16px;height:16px;border-radius:50%;font-size:10px;font-weight:600;
+  display:flex;align-items:center;justify-content:center;flex-shrink:0;
+  font-variant-numeric:tabular-nums;
+}
+.hrs{font-size:10px;color:var(--mute);font-variant-numeric:tabular-nums;white-space:nowrap;width:26px;text-align:right}
+
+.lg{display:flex;flex-wrap:wrap;gap:10px;padding:10px 14px;border-top:1px solid var(--line);background:var(--sunken)}
+.lg-i{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--body)}
+.lg-s{width:14px;height:7px;border-radius:1.5px;flex-shrink:0}
+
+/* ─────────── settings ─────────── */
+.set{background:var(--card);border:1px solid var(--line);border-radius:var(--r-lg);margin-bottom:8px;overflow:hidden}
+.set-h{padding:13px 16px 0;font-size:11px;font-weight:600;color:var(--mute);letter-spacing:.08em}
+.set-b{padding:12px 16px 14px}
+.set-note{font-size:12px;color:var(--body);line-height:1.7}
+.set-note code{font-size:11px;background:var(--sunken);padding:1px 5px;border-radius:4px;font-family:ui-monospace,SFMono-Regular,monospace}
+.abtn{
+  display:inline-block;padding:8px 14px;background:none;border:1px solid var(--line-strong);
+  border-radius:var(--r-sm);font:inherit;font-size:12px;color:var(--body);
+  cursor:pointer;transition:.15s;margin:0 6px 6px 0;
+}
+.abtn:hover{border-color:var(--pri);color:var(--pri)}
+.hi{display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;transition:background .12s}
+.hi + .hi{border-top:1px solid var(--line)}
+.hi:hover{background:var(--sunken)}
+.hi-d{font-size:12px;font-variant-numeric:tabular-nums;width:88px;flex-shrink:0}
+.hi-m{flex:1;height:11px;position:relative;background:var(--sunken);border-radius:2px;overflow:hidden}
+.hi-x{font-size:10px;color:var(--mute);font-variant-numeric:tabular-nums;width:34px;text-align:right;flex-shrink:0}
+
+/* ─────────── tabbar ─────────── */
+.tb{
+  position:fixed;bottom:0;left:0;right:0;z-index:50;
+  background:rgba(255,255,255,.92);backdrop-filter:saturate(180%) blur(12px);
+  border-top:1px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom);
+  display:flex;max-width:480px;margin:0 auto;
+}
+.tb-b{
+  flex:1;padding:9px 2px 8px;background:none;border:none;cursor:pointer;
+  font:inherit;display:flex;flex-direction:column;align-items:center;gap:3px;
+  color:var(--faint);transition:color .15s;-webkit-tap-highlight-color:transparent;
+}
+.tb-b svg{width:21px;height:21px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.tb-l{font-size:10px;letter-spacing:.02em}
+.tb-b[aria-selected="true"]{color:var(--pri)}
+
+/* ─────────── sheet ─────────── */
+.sheet-bg{
+  position:fixed;inset:0;background:rgba(20,22,26,.4);z-index:100;
+  display:flex;align-items:flex-end;justify-content:center;
+  animation:fade .2s ease;
+}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+.sheet{
+  background:var(--card);border-radius:18px 18px 0 0;width:100%;max-width:480px;
+  max-height:82vh;overflow-y:auto;padding-bottom:calc(20px + env(safe-area-inset-bottom));
+  animation:up .26s cubic-bezier(.32,.72,0,1);
+}
+@keyframes up{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.sheet-grab{width:34px;height:4px;background:var(--line-strong);border-radius:2px;margin:8px auto 0}
+.sheet-h{display:flex;align-items:center;justify-content:space-between;padding:12px 20px 10px}
+.sheet-t{font-size:15px;font-weight:600;font-variant-numeric:tabular-nums}
+.sheet-b{padding:0 20px}
+.dl{display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;font-size:13px}
+.dl + .dl{border-top:1px solid var(--line)}
+.dl-k{color:var(--mute)}
+.dl-v{font-variant-numeric:tabular-nums;text-align:right}
+.dsec{font-size:10px;font-weight:600;color:var(--faint);letter-spacing:.1em;margin:16px 0 2px}
+.dsec:first-child{margin-top:6px}
+.sheet-acts{display:flex;gap:8px;padding:18px 20px 0}
+.sheet-acts button{flex:1;padding:11px;border-radius:var(--r);font:inherit;font-size:13px;cursor:pointer;transition:.15s}
+
+/* toast */
+.toast{
+  position:fixed;left:50%;transform:translateX(-50%) translateY(8px);
+  bottom:calc(80px + env(safe-area-inset-bottom));
+  background:var(--ink);color:#fff;padding:10px 18px;border-radius:22px;
+  font-size:13px;z-index:200;opacity:0;transition:.24s cubic-bezier(.32,.72,0,1);
+  pointer-events:none;white-space:nowrap;max-width:88vw;
+  box-shadow:0 4px 16px rgba(0,0,0,.16);
+}
+.toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+
+.empty{text-align:center;padding:44px 20px;color:var(--faint);font-size:13px}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="hdr">
+    <div class="hdr-in">
+      <span class="hdr-title">睡眠日誌</span>
+      <span class="hdr-date">
+        <input type="date" id="dp" class="date-native num">
+        <button class="today-link" id="tdb" onclick="goToday()">今日</button>
+      </span>
+    </div>
+  </header>
+  <main id="main"></main>
+</div>
+
+<nav class="tb" id="tb">
+  <button class="tb-b" data-v="quick" aria-selected="false">
+    <svg viewBox="0 0 24 24"><path d="M13 2 4.1 13.1a.6.6 0 0 0 .5 1H11l-1 8 8.9-11.1a.6.6 0 0 0-.5-1H12z"/></svg>
+    <span class="tb-l">クイック</span>
+  </button>
+  <button class="tb-b" data-v="record" aria-selected="true">
+    <svg viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg>
+    <span class="tb-l">記録</span>
+  </button>
+  <button class="tb-b" data-v="chart" aria-selected="false">
+    <svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><rect x="7" y="12" width="3" height="5"/><rect x="12" y="8" width="3" height="9"/><rect x="17" y="5" width="3" height="12"/></svg>
+    <span class="tb-l">チャート</span>
+  </button>
+  <button class="tb-b" data-v="settings" aria-selected="false">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.6a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+    <span class="tb-l">設定</span>
+  </button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+const SK='ih_diary_v6';
+const PK='ih_diary_pending_v1';
+const CK='ih_diary_cfg_v1';
+const S={db:{},view:'record',date:td(),napType:null,tmpNap:null,edMed:false,tmpMed:null,month:td().slice(0,7),pending:null,
+  cfg:{meds:['モディオダール','ロキソニン'],se:[{key:'headache',label:'頭痛'},{key:'nausea',label:'吐き気'},{key:'appetite',label:'食欲不振'},{key:'yawn',label:'あくび'},{key:'palpitation',label:'動悸'}]},
+  edMedCfg:false,tmpMedCfg:'',edSeCfg:false,tmpSeCfg:''};
+try{const r=localStorage.getItem(SK);if(r)S.db=JSON.parse(r);}catch(e){}
+try{const r=localStorage.getItem(PK);if(r)S.pending=JSON.parse(r);}catch(e){}
+try{const r=localStorage.getItem(CK);if(r)Object.assign(S.cfg,JSON.parse(r));}catch(e){}
+function putCfg(){try{localStorage.setItem(CK,JSON.stringify(S.cfg));}catch(e){}}
+function putPending(){try{if(S.pending)localStorage.setItem(PK,JSON.stringify(S.pending));else localStorage.removeItem(PK);}catch(e){}}
+function findOpenSleep(){
+  const p=S.pending;if(!p)return null;
+  const arr=S.db[p.date]&&S.db[p.date].sleep;
+  if(!arr)return null;
+  const idx=arr.findIndex(b=>b.wh===''&&b.sh===p.sh&&b.sm===p.sm);
+  return idx>-1?{date:p.date,idx,sh:p.sh,sm:p.sm}:null;
+}
+
+/* ── utils ── */
+function td(){const d=new Date();return d.getFullYear()+'-'+p2(d.getMonth()+1)+'-'+p2(d.getDate());}
+function p2(n){return String(n).padStart(2,'0');}
+function now(){const d=new Date();return{h:d.getHours(),m:d.getMinutes()};}
+function T(h,m){return h===''||h==null?'--:--':p2(h)+':'+p2(m||0);}
+function parseT(v){
+  const s=String(v).replace(/\D/g,'');if(!s)return null;
+  let h,m;
+  if(s.length<=2){h=+s;m=0;}
+  else if(s.length===3){h=+s[0];m=+s.slice(1);}
+  else{h=+s.slice(0,2);m=+s.slice(2,4);}
+  return(h>23||m>59)?null:{h,m};
+}
+function dur(sh,sm,wh,wm){
+  if(sh===''||sh==null||wh===''||wh==null)return null;
+  let a=sh*60+(sm||0),b=wh*60+(wm||0);
+  if(b<=a)b+=1440;
+  return{h:(b-a)/60|0,m:(b-a)%60,t:b-a};
+}
+function hm(t){return t?(t.m?t.h+'h'+t.m+'m':t.h+'h'):'';}
+function hmv(min){return min?(min%60?(min/60|0)+'h'+(min%60)+'m':(min/60|0)+'h'):'';}
+const DW=['日','月','火','水','木','金','土'];
+function dw(d){return DW[new Date(d).getDay()];}
+function wknd(d){const g=new Date(d).getDay();return g===0||g===6;}
+function E(d){if(!S.db[d])S.db[d]={sleep:[],naps:[],meds:[],meals:{lunch:{h:'',m:0},dinner:{h:'',m:0},extra:[]},lv:0,se:{list:[],other:''},note:''};
+  const e=S.db[d];e.sleep=e.sleep||[];e.naps=e.naps||[];e.meds=e.meds||[];
+  e.sleep.forEach(b=>{if(!b.wake)b.wake=[];});
+  e.meals=e.meals||{lunch:{h:'',m:0},dinner:{h:'',m:0},extra:[]};e.meals.extra=e.meals.extra||[];
+  e.se=e.se||{list:[]};e.se.list=e.se.list||[];
+  // migrate v6 format (string list + other text) → timed entries
+  e.se.list=e.se.list.map(x=>typeof x==='string'?{t:x,h:'',m:0}:x);
+  if(e.se.other){e.se.list.push({t:'other',label:e.se.other,h:'',m:0});delete e.se.other;}
+  return e;}
+const SV=[[1,'弱'],[2,'中'],[3,'強']];
+const SVLBL={1:'弱',2:'中',3:'強'};
+const SVCOL={1:'var(--ok)',2:'var(--warn)',3:'var(--bad)'};
+const SVBG={1:'var(--ok-soft)',2:'var(--warn-soft)',3:'var(--bad-soft)'};
+function curSE(){return S.cfg.se.map(x=>[x.key,x.label]).concat([['other','その他']]);}
+function curSEL(){const m={};S.cfg.se.forEach(x=>m[x.key]=x.label);m.other='その他';return m;}
+function seName(x){if(x.t==='other')return x.label||'その他';const m=curSEL();return m[x.t]!==undefined?m[x.t]:x.t;}
+function seFull(x){return seName(x)+(x.sv?'（'+SVLBL[x.sv]+'）':'');}
+function hasSE(e){return!!(e&&e.se&&e.se.list&&e.se.list.length);}
+function put(){try{localStorage.setItem(SK,JSON.stringify(S.db));}catch(e){}}
+function pct(h,m){return((h*60+(m||0))/1440*100);}
+function wpct(sh,sm,eh,em){let a=sh*60+(sm||0),b=eh*60+(em||0);if(b<=a)b+=1440;return(b-a)/1440*100;}
+function totalSleep(e){
+  return(e.sleep||[]).map(b=>{
+    const d=dur(b.sh,b.sm,b.wh,b.wm);
+    if(!d)return 0;
+    return Math.max(d.t-blockWakeMin(b),0);
+  }).reduce((a,x)=>a+x,0);
+}
+function blockWakeMin(b){
+  if(!b.wake||!b.wake.length||b.sh==='')return 0;
+  const a=b.sh*60+(b.sm||0);
+  let t=0;
+  b.wake.forEach(w=>{
+    if(w.h===''||w.eh==='')return;
+    let s=w.h*60+(w.m||0),e=w.eh*60+(w.em||0);
+    if(e<=s)e+=1440;
+    t+=(e-s);
+  });
+  return t;
+}
+const NAPL={doze:'うとうと',crash:'寝落ち',nap:'仮眠'};
+const NAPC={doze:'b-doze',crash:'b-crash',nap:'b-nap'};
+const TICKS=[0,3,6,9,12,15,18,21,24];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* ── toast ── */
+let tto;
+function toast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('on');
+  clearTimeout(tto);tto=setTimeout(()=>t.classList.remove('on'),2000);
+}
+
+/* ── chart primitives ── */
+function grid(){return TICKS.map(h=>'<i class="gl'+(h===12?' noon':'')+'" style="left:'+(h/24*100)+'%"></i>').join('');}
+function prevDateStr(d){const dt=new Date(d+'T00:00:00');dt.setDate(dt.getDate()-1);return dt.getFullYear()+'-'+p2(dt.getMonth()+1)+'-'+p2(dt.getDate());}
+function nextDateStr(d){const dt=new Date(d+'T00:00:00');dt.setDate(dt.getDate()+1);return dt.getFullYear()+'-'+p2(dt.getMonth()+1)+'-'+p2(dt.getDate());}
+function span(sh,sm,eh,em){
+  let a=sh*60+(sm||0),b=eh*60+(em||0);
+  if(b<=a)b+=1440;
+  return{a,b};
+}
+function segBar(cls,a,b){
+  const left=Math.max(a,0),right=Math.min(b,1440);
+  if(right<=left)return'';
+  return'<i class="bar '+cls+'" style="left:'+(left/1440*100)+'%;width:'+Math.max((right-left)/1440*100,.5)+'%"></i>';
+}
+function segTail(cls,b){
+  if(b<=1440)return'';
+  const w=b-1440;
+  return'<i class="bar '+cls+'" style="left:0%;width:'+Math.max(w/1440*100,.5)+'%"></i>';
+}
+/*
+  睡眠(sleep)は「起床日」を所有日とする：
+  - このentryのブロックが日をまたぐ場合(wh<=sh)、当日は 0:00〜起床時刻 の朝側だけを描く
+  - 前夜（bedtime）側は、翌日entry(nextE)から借りて 就寝時刻〜24:00 を当日の行に描く
+  仮眠(nap)は従来通り「開始日」を所有日とし、日をまたいだ分だけ翌日(prevE基準)へ描く
+*/
+function bars(e,prevE,nextE){
+  if(!e&&!prevE&&!nextE)return'';
+  let o='';
+  ((e&&e.sleep)||[]).forEach(b=>{
+    if(b.sh===''&&b.wh==='')return;
+    if(b.wh===''){ o+=segBar('b-sleep',b.sh*60+(b.sm||0),1440); return; } // 進行中（未起床）
+    if(b.sh===''){ o+=segBar('b-sleep',0,b.wh*60+(b.wm||0)); return; }   // 開始不明（フォールバック）
+    const a=b.sh*60+b.sm,bb=b.wh*60+b.wm;
+    if(bb<=a){ o+=segBar('b-sleep',0,bb); o+=wakeGaps(b,a,'own'); }      // 日またぎ：朝側のみ当日
+    else{ o+=segBar('b-sleep',a,bb); o+=wakeGaps(b,a,'flat'); }          // またがない通常ブロック
+  });
+  ((nextE&&nextE.sleep)||[]).forEach(b=>{
+    if(b.sh===''||b.wh==='')return;
+    const a=b.sh*60+b.sm,bb=b.wh*60+b.wm;
+    if(bb<=a){ o+=segBar('b-sleep',a,1440); o+=wakeGaps(b,a,'borrow'); }  // 翌日entryの夜側を当日の行に描く
+  });
+  ((e&&e.naps)||[]).forEach(n=>{if(n.sh==='')return;
+    const wh=n.eh===''?n.sh:n.eh,wm=n.eh===''?n.sm:n.em;
+    const s=span(n.sh,n.sm,wh,wm);o+=segBar(NAPC[n.type],s.a,s.b);});
+  ((prevE&&prevE.naps)||[]).forEach(n=>{if(n.sh===''||n.eh==='')return;
+    const s=span(n.sh,n.sm,n.eh,n.em);o+=segTail(NAPC[n.type],s.b);});
+  if(!e)return o;
+  (e.meds||[]).forEach(m=>{if(m.h==='')return;o+='<i class="mk mk-med" style="left:'+pct(m.h,m.m)+'%"></i>';});
+  const L=e.meals||{};
+  if(L.lunch&&L.lunch.h!=='')o+='<i class="mk mk-meal" style="left:'+pct(L.lunch.h,L.lunch.m)+'%"></i>';
+  if(L.dinner&&L.dinner.h!=='')o+='<i class="mk mk-meal" style="left:'+pct(L.dinner.h,L.dinner.m)+'%"></i>';
+  (L.extra||[]).forEach(x=>{if(x.h!=='')o+='<i class="mk mk-meal" style="left:'+pct(x.h,x.m)+'%"></i>';});
+  ((e.se&&e.se.list)||[]).forEach(x=>{if(x.h==='')return;o+='<i class="mk mk-se" style="left:'+pct(x.h,x.m)+'%"></i>';});
+  return o;
+}
+/*
+  中途覚醒(wake)は睡眠ブロックbに属する。bedtime(a)を基準に、時計時刻が bedtime以上 なら「夜側」、
+  それ未満なら「朝側」とみなして描き分ける。mode:
+    'flat'   同日内で完結するブロック(sh<wh) → そのまま
+    'own'    日またぎブロックの「当日(起床日)」側 → 朝側(raw<a)の覚醒のみ描く
+    'borrow' 日またぎブロックの「前日(就寝日)」側 → 夜側(raw>=a)の覚醒のみ描く
+*/
+function wakeGaps(b,a,mode){
+  let o='';
+  (b.wake||[]).forEach(w=>{
+    if(w.h===''||w.eh==='')return;
+    const rawS=w.h*60+(w.m||0),rawE=w.eh*60+(w.em||0);
+    if(mode==='flat'){ o+=segBar('b-wake',rawS,rawE>rawS?rawE:rawE+1440); return; }
+    const evening = rawS>=a;
+    if(mode==='own'&&!evening) o+=segBar('b-wake',rawS,rawE);
+    if(mode==='borrow'&&evening) o+=segBar('b-wake',rawS,rawE);
+  });
+  return o;
+}
+function lvStyle(lv){
+  if(lv>=4)return'background:var(--bad-soft);color:var(--bad)';
+  if(lv===3)return'background:var(--warn-soft);color:var(--warn)';
+  if(lv>0)return'background:var(--ok-soft);color:var(--ok)';
+  return'color:var(--faint)';
+}
+
+/* ═══════════ RECORD ═══════════ */
+function vRecord(){
+  const e=E(S.date),L=e.meals;
+  let o='';
+
+  // preview
+  const has=e.sleep.some(b=>b.sh!=='')||e.naps.length||e.meds.length||L.lunch.h!==''||L.dinner.h!==''||L.extra.length;
+  if(has){
+    const t=totalSleep(e);
+    o+='<div class="grp"><div class="card"><div class="pad" style="padding:12px 14px">'
+      +'<div style="display:flex;justify-content:space-between;font-size:9px;color:var(--faint);margin-bottom:4px" class="num">'
+      +TICKS.map(h=>'<span>'+h+'</span>').join('')+'</div>'
+      +'<div class="ch-b" style="height:20px">'+grid()+bars(e,S.db[prevDateStr(S.date)],S.db[nextDateStr(S.date)])+'</div>'
+      +(t?'<div style="text-align:right;font-size:11px;color:var(--pri);margin-top:6px" class="num">合計 '+hmv(t)+'</div>':'')
+      +'</div></div></div>';
+  }
+
+  // sleep
+  o+='<div class="grp"><div class="grp-hd">🌙 就寝・起床</div><div class="card">';
+  if(!e.sleep.length){
+    o+='<div class="pad" style="color:var(--faint);font-size:13px;padding-bottom:6px">記録なし</div>';
+  }else{
+    e.sleep.forEach((b,i)=>{
+      const dRaw=dur(b.sh,b.sm,b.wh,b.wm);
+      const wkMin=blockWakeMin(b);
+      const net=dRaw?Math.max(dRaw.t-wkMin,0):null;
+      o+='<div class="sblock"><div class="srow">'
+        +(e.sleep.length>1?'<span class="srow-idx num">'+(i+1)+'</span>':'')
+        +'<input class="tfield" inputmode="numeric" placeholder="--:--" value="'+(b.sh!==''?T(b.sh,b.sm):'')+'" onblur="sSet('+i+',0,this.value)" onkeydown="ent(event)">'
+        +'<span class="srow-arw">→</span>'
+        +'<input class="tfield" inputmode="numeric" placeholder="--:--" value="'+(b.wh!==''?T(b.wh,b.wm):'')+'" onblur="sSet('+i+',1,this.value)" onkeydown="ent(event)">'
+        +(net!=null?'<span class="srow-dur num">'+hm({h:net/60|0,m:net%60})+'</span>':'<span class="srow-dur"></span>')
+        +'<button class="xbtn" onclick="sDel('+i+')">×</button></div>';
+
+      // wake-period sub-list
+      o+='<div class="wksub">';
+      (b.wake||[]).forEach((w,wi)=>{
+        o+='<span class="wkchip">'+(w.h!==''?T(w.h,w.m):'--:--')+' → '+(w.eh!==''?T(w.eh,w.em):'--:--')
+          +'<button onclick="wkDel('+i+','+wi+')">×</button></span>';
+      });
+      if(S.wkEdit&&S.wkEdit.block===i){
+        const t=S.tmpWk||{};
+        o+='<div class="wked"><div class="ed-row" style="margin-bottom:8px">'
+          +'<span class="ed-lbl">目が覚めていた時間</span></div>'
+          +'<div class="ed-row">'
+          +'<input class="tfield" inputmode="numeric" placeholder="--:--" value="'+(t.h!=null?T(t.h,t.m):'')+'" onblur="wkT(0,this.value)" onkeydown="ent(event)">'
+          +'<span class="srow-arw">→</span>'
+          +'<input class="tfield" inputmode="numeric" placeholder="--:--" value="'+(t.eh!=null?T(t.eh,t.em):'')+'" onblur="wkT(1,this.value)" onkeydown="ent(event)">'
+          +'</div><div class="ed-acts"><button class="btn-p" onclick="wkOk('+i+')">追加</button><button class="btn-g" onclick="wkCancel()">取消</button></div></div>';
+      }else{
+        o+='<button class="wkadd" onclick="wkStart('+i+')">＋ 途中で目が覚めていた時間を追加</button>';
+      }
+      o+='</div></div>';
+    });
+  }
+  o+='<button class="addrow" onclick="sAdd()">＋ 就寝・起床を追加</button></div></div>';
+
+  // naps
+  o+='<div class="grp"><div class="grp-hd">💤 日中の眠気'+(e.naps.length?'<span class="n">'+e.naps.length+'</span>':'')+'</div><div class="card">';
+  e.naps.forEach((n,i)=>{
+    o+='<div class="li"><span class="li-tag">'+NAPL[n.type]+'</span>'
+      +'<span class="li-main num">'+T(n.sh,n.sm)+' → '+T(n.eh,n.em)+'</span>'
+      +'<button class="xbtn" onclick="nDel('+i+')">×</button></div>';
+  });
+  o+='<div class="seg">'
+    +['doze','crash','nap'].map(k=>'<button class="seg-btn" aria-pressed="'+(S.napType===k)+'" onclick="nTog(\''+k+'\')">'+NAPL[k]+'</button>').join('')
+    +'</div>';
+  if(S.napType){
+    const t=S.tmpNap||{};
+    o+='<div class="ed"><div class="ed-row">'
+      +'<span class="ed-lbl">開始</span>'
+      +'<input class="tfield" inputmode="numeric" placeholder="--:--" value="'+(t.sh!=null?T(t.sh,t.sm):'')+'" onblur="nT(0,this.value)" onkeydown="ent(event)">'
+      +'<span class="srow-arw">→</span>'
+      +'<span class="ed-lbl">終了</span>'
+      +'<input class="tfield" inputmode="numeric" placeholder="--:--" value="'+(t.eh!=null?T(t.eh,t.em):'')+'" onblur="nT(1,this.value)" onkeydown="ent(event)">'
+      +'</div><div class="ed-acts"><button class="btn-p" onclick="nOk()">追加</button><button class="btn-g" onclick="nCancel()">取消</button></div></div>';
+  }else{o+='<div style="height:12px"></div>';}
+  o+='</div></div>';
+
+  // meds
+  o+='<div class="grp"><div class="grp-hd">💊 服薬'+(e.meds.length?'<span class="n">'+e.meds.length+'</span>':'')+'</div><div class="card">';
+  e.meds.forEach((m,i)=>{
+    o+='<div class="li"><span class="li-tag amber">'+esc(m.name)+'</span>'
+      +'<span class="li-main num">'+m.dose+' 錠</span>'
+      +'<span class="li-time num">'+T(m.h,m.m)+'</span>'
+      +'<button class="xbtn" onclick="mDel('+i+')">×</button></div>';
+  });
+  if(S.edMed){
+    const t=S.tmpMed||{name:S.cfg.meds[0]||'',dose:1};
+    o+='<div class="ed"><div class="ed-row">'
+      +'<select class="sel" id="mn">'+S.cfg.meds.map(n=>'<option'+(t.name===n?' selected':'')+'>'+esc(n)+'</option>').join('')+'</select>'
+      +'<input class="numf" id="md" type="number" min="0.5" step="0.5" value="'+t.dose+'">'
+      +'<span class="ed-lbl">錠</span>'
+      +'<input class="tfield" inputmode="numeric" placeholder="--:--" value="'+(t.h!=null?T(t.h,t.m):'')+'" onblur="mT(this.value)" onkeydown="ent(event)">'
+      +'</div><div class="ed-acts"><button class="btn-p" onclick="mOk()">追加</button><button class="btn-g" onclick="S.edMed=false;R()">取消</button></div></div>';
+  }else{
+    o+='<button class="addrow" onclick="S.edMed=true;S.tmpMed={name:S.cfg.meds[0]||\'\',dose:1};R()">＋ 服薬を追加</button>';
+  }
+  o+='</div></div>';
+
+  // meals
+  o+='<div class="grp"><div class="grp-hd">🍽 食事</div><div class="card">'
+    +'<div class="srow"><span class="ed-lbl" style="width:32px">昼食</span>'
+    +'<input class="tfield" inputmode="numeric" placeholder="--:--" value="'+(L.lunch.h!==''?T(L.lunch.h,L.lunch.m):'')+'" onblur="mealSet(\'lunch\',this.value)" onkeydown="ent(event)"></div>'
+    +'<div class="srow"><span class="ed-lbl" style="width:32px">夕食</span>'
+    +'<input class="tfield" inputmode="numeric" placeholder="--:--" value="'+(L.dinner.h!==''?T(L.dinner.h,L.dinner.m):'')+'" onblur="mealSet(\'dinner\',this.value)" onkeydown="ent(event)"></div>';
+  L.extra.forEach((x,i)=>{
+    o+='<div class="srow"><span class="ed-lbl" style="width:32px">おやつ</span>'
+      +'<input class="tfield" inputmode="numeric" placeholder="--:--" value="'+(x.h!==''?T(x.h,x.m):'')+'" onblur="exSet('+i+',this.value)" onkeydown="ent(event)">'
+      +'<button class="xbtn" style="margin-left:auto" onclick="exDel('+i+')">×</button></div>';
+  });
+  o+='<button class="addrow" onclick="exAdd()">＋ おやつを追加</button></div></div>';
+
+  // scale
+  const LBL=['','なし','軽度','中等度','強い','極めて強い'];
+  o+='<div class="grp"><div class="grp-hd">📊 日中の眠気評価</div><div class="card"><div class="scale">';
+  for(let n=1;n<=5;n++){
+    o+='<button class="sc" data-lv="'+n+'" aria-pressed="'+(e.lv===n)+'" onclick="setLv('+n+')">'
+      +'<div class="sc-n">'+n+'</div><div class="sc-l">'+LBL[n]+'</div></button>';
+  }
+  o+='</div></div></div>';
+
+  // side effects
+  const se=e.se.list;
+  o+='<div class="grp"><div class="grp-hd">🩹 副作用'+(se.length?'<span class="n">'+se.length+'</span>':'')+'</div><div class="card">';
+  se.forEach((x,i)=>{
+    o+='<div class="li"><span class="li-tag rose">'+esc(seName(x))+'</span>'
+      +'<button class="svbadge" style="'+(x.sv?('background:'+SVBG[x.sv]+';border-color:transparent;color:'+SVCOL[x.sv]):'')+'" onclick="seCycleSv('+i+')">'+(x.sv?SVLBL[x.sv]:'強さ')+'</button>'
+      +'<span class="li-main"></span>'
+      +'<input class="tfield" style="width:66px;font-size:15px" inputmode="numeric" placeholder="--:--" value="'+(x.h!==''?T(x.h,x.m):'')+'" onblur="seTime('+i+',this.value)" onkeydown="ent(event)">'
+      +'<button class="xbtn" onclick="seDel('+i+')">×</button></div>';
+  });
+  o+='<div class="chips">'
+    +curSE().map(x=>'<button class="chip" aria-pressed="'+(S.seType===x[0])+'" onclick="seTog(\''+x[0]+'\')">'+x[1]+'</button>').join('')
+    +'</div>';
+  if(S.seType){
+    const t=S.tmpSe||{};
+    o+='<div class="ed" style="margin-top:2px"><div class="ed-row">'
+      +(S.seType==='other'
+        ? '<input class="se-in" style="flex:1;min-width:120px" placeholder="症状名" value="'+esc(t.label||'')+'" oninput="S.tmpSe=S.tmpSe||{};S.tmpSe.label=this.value">'
+        : '<span class="ed-lbl">'+curSEL()[S.seType]+'</span>')
+      +'<input class="tfield" inputmode="numeric" placeholder="--:--" value="'+(t.h!=null?T(t.h,t.m):'')+'" onblur="seT(this.value)" onkeydown="ent(event)">'
+      +'<button class="btn-g" style="padding:7px 10px" onclick="seNow()">今</button>'
+      +'</div>'
+      +'<div class="ed-row" style="margin-bottom:0"><span class="ed-lbl">強さ</span><div class="svmini">'
+      +SV.map(([n,l])=>'<button data-sv="'+n+'" aria-pressed="'+(t.sv===n)+'" onclick="svPick('+n+')">'+l+'</button>').join('')
+      +'</div></div>'
+      +'<div class="ed-acts"><button class="btn-p" onclick="seOk()">追加</button><button class="btn-g" onclick="seCancel()">取消</button></div></div>';
+  }else{o+='<div style="height:4px"></div>';}
+  o+='</div></div>';
+
+  // note
+  o+='<div class="grp"><div class="grp-hd">📝 メモ</div><div class="card">'
+    +'<textarea class="ta" placeholder="症状・体調・出来事など" onchange="E(S.date).note=this.value;put()">'+esc(e.note||'')+'</textarea>'
+    +'</div></div>';
+
+  return o;
+}
+
+/* ═══════════ QUICK ═══════════ */
+function vQuick(){
+  const e=E(S.date),L=e.meals,n=now();
+  const rt=td(),re=E(rt);
+  const open=findOpenSleep();
+  const canWake=!!open||re.sleep.some(b=>b.wh===''&&b.sh!=='');
+  const lastStart=open?T(open.sh,open.sm):'';
+  const lastWake=(()=>{const done=re.sleep.filter(b=>b.wh!=='');return done.length?T(done.slice(-1)[0].wh,done.slice(-1)[0].wm):'';})();
+
+  let o='<div class="qclock"><div class="qclock-t num">'+T(n.h,n.m)+'</div>'
+    +'<div class="qclock-d">'+(S.date===td()?'今日':S.date.replace(/-/g,'/'))+'（'+dw(S.date)+'）</div></div>';
+
+  o+='<div class="qgrp"><div class="qgrp-hd">睡眠</div><div class="qgrid">'
+    +qb('🌙','入眠','今の時刻で記録','sleep_start',lastStart,false)
+    +qb('☀️','起床','今の時刻で記録','sleep_end',lastWake,!canWake)
+    +'</div></div>';
+
+  o+='<div class="qgrp"><div class="qgrp-hd">食事</div><div class="qgrid3">'
+    +qb3('🍚','昼食','lunch',L.lunch.h!==''?T(L.lunch.h,L.lunch.m):'')
+    +qb3('🍲','夕食','dinner',L.dinner.h!==''?T(L.dinner.h,L.dinner.m):'')
+    +qb3('🍪','おやつ','snack',L.extra.length?L.extra.length+'件':'')
+    +'</div></div>';
+
+  o+='<div class="qgrp"><div class="qgrp-hd">服薬</div><div class="qgrid'+(S.cfg.meds.length>2?'3':'')+'">'
+    +S.cfg.meds.map(name=>{
+      const list=e.meds.filter(m=>m.name===name);
+      return qb('💊',name,'1錠を記録','med:'+encodeURIComponent(name),list.length?T(list.slice(-1)[0].h,list.slice(-1)[0].m):'',false);
+    }).join('')
+    +'</div></div>';
+
+  o+='<div class="qgrp"><div class="qgrp-hd">副作用'+(e.se.list.length?'<span class="n">'+e.se.list.length+'</span>':'')+'</div><div class="card"><div class="chips" style="padding:11px 13px">'
+    +curSE().map(x=>'<button class="chip" onclick="seQuick(\''+x[0]+'\')">'+x[1]+'</button>').join('')
+    +'</div></div></div>';
+
+  // timeline
+  const tl=[];
+  const nxt=S.db[nextDateStr(S.date)];
+  e.sleep.forEach(b=>{
+    if(b.sh===''&&b.wh==='')return;
+    if(b.sh!==''&&b.wh!==''){
+      const crosses=(b.wh*60+b.wm)<=(b.sh*60+b.sm);
+      if(crosses){tl.push({t:T(b.wh,b.wm),l:'起床',k:'sleep'});}          // 入眠は前夜なのでここでは出さない
+      else{tl.push({t:T(b.sh,b.sm),l:'入眠',k:'sleep'});tl.push({t:T(b.wh,b.wm),l:'起床',k:'sleep'});}
+    }else if(b.wh===''){tl.push({t:T(b.sh,b.sm),l:'入眠（就寝中）',k:'sleep'});}
+    else{tl.push({t:T(b.wh,b.wm),l:'起床',k:'sleep'});}
+  });
+  ((nxt&&nxt.sleep)||[]).forEach(b=>{
+    if(b.sh===''||b.wh==='')return;
+    const crosses=(b.wh*60+b.wm)<=(b.sh*60+b.sm);
+    if(crosses)tl.push({t:T(b.sh,b.sm),l:'入眠',k:'sleep'});               // 翌日に完了した「今夜の入眠」をここに表示
+  });
+  e.naps.forEach(x=>tl.push({t:T(x.sh,x.sm),l:NAPL[x.type]+'（〜'+T(x.eh,x.em)+'）',k:'nap'}));
+  e.meds.forEach(m=>tl.push({t:T(m.h,m.m),l:m.name+' '+m.dose+'錠',k:'med'}));
+  if(L.lunch.h!=='')tl.push({t:T(L.lunch.h,L.lunch.m),l:'昼食',k:'meal'});
+  if(L.dinner.h!=='')tl.push({t:T(L.dinner.h,L.dinner.m),l:'夕食',k:'meal'});
+  L.extra.forEach(x=>{if(x.h!=='')tl.push({t:T(x.h,x.m),l:'おやつ',k:'meal'})});
+  e.se.list.forEach(x=>{if(x.h!=='')tl.push({t:T(x.h,x.m),l:seFull(x),k:'se'})});
+  tl.sort((a,b)=>a.t.localeCompare(b.t));
+
+  if(tl.length){
+    o+='<div class="qgrp"><div class="qgrp-hd">本日の記録<span class="n">'+tl.length+'</span></div><div class="tl">'
+      +tl.map(x=>'<div class="tl-i" data-k="'+x.k+'"><span class="tl-t num">'+x.t+'</span><span class="tl-l">'+esc(x.l)+'</span></div>').join('')
+      +'</div></div>';
+  }
+  return o;
+}
+function qb(ico,label,sub,act,badge,dis){
+  return'<button class="qbtn" onclick="q(\''+act+'\')"'+(dis?' disabled':'')+'>'
+    +'<span class="qbtn-ico">'+ico+'</span>'
+    +'<span class="qbtn-l">'+label+'</span>'
+    +'<span class="qbtn-s">'+sub+'</span>'
+    +(badge?'<span class="qbtn-badge num">'+badge+'</span>':'')+'</button>';
+}
+function qb3(ico,label,act,badge){
+  return'<button class="qbtn" onclick="q(\''+act+'\')">'
+    +'<span class="qbtn-ico">'+ico+'</span>'
+    +'<span class="qbtn-l">'+label+'</span>'
+    +(badge?'<span class="qbtn-badge num">'+badge+'</span>':'')+'</button>';
+}
+function q(a){
+  const t=now(),e=E(S.date),rt=td();
+  if(a==='sleep_start'){
+    const od=E(rt);
+    od.sleep.push({sh:t.h,sm:t.m,wh:'',wm:0});
+    S.pending={date:rt,sh:t.h,sm:t.m};putPending();
+    toast('入眠 '+T(t.h,t.m));
+  }
+  else if(a==='sleep_end'){
+    const open=findOpenSleep(),we=E(rt);
+    if(open){
+      S.db[open.date].sleep.splice(open.idx,1);
+      we.sleep.push({sh:open.sh,sm:open.sm,wh:t.h,wm:t.m});
+    }else{
+      const l=we.sleep[we.sleep.length-1];
+      if(l&&l.wh===''){l.wh=t.h;l.wm=t.m;}else we.sleep.push({sh:'',sm:0,wh:t.h,wm:t.m});
+    }
+    S.pending=null;putPending();
+    toast('起床 '+T(t.h,t.m));
+  }
+  else if(a==='lunch'){e.meals.lunch={h:t.h,m:t.m};toast('昼食 '+T(t.h,t.m));}
+  else if(a==='dinner'){e.meals.dinner={h:t.h,m:t.m};toast('夕食 '+T(t.h,t.m));}
+  else if(a==='snack'){e.meals.extra.push({h:t.h,m:t.m});toast('おやつ '+T(t.h,t.m));}
+  else if(a.indexOf('med:')===0){
+    const name=decodeURIComponent(a.slice(4));
+    e.meds.push({name,dose:1,h:t.h,m:t.m});toast(name+' 1錠 '+T(t.h,t.m));
+  }
+  put();R();
+}
+
+/* ═══════════ CHART ═══════════ */
+function vChart(){
+  const m=S.month,y=+m.slice(0,4),mo=+m.slice(5,7);
+  const days=new Date(y,mo,0).getDate();
+  const cur=td().slice(0,7);
+  const dates=[];for(let i=1;i<=days;i++)dates.push(m+'-'+p2(i));
+
+  let o='<div class="mnav"><button class="mnav-b" onclick="mv(-1)">‹</button>'
+    +'<span class="mnav-l">'+y+'年 '+mo+'月</span>'
+    +'<button class="mnav-b" onclick="mv(1)"'+(m>=cur?' disabled':'')+'>›</button></div>';
+
+  const ts=dates.map(d=>S.db[d]?totalSleep(S.db[d]):0).filter(x=>x>0);
+  const lvs=dates.map(d=>S.db[d]&&S.db[d].lv||0).filter(x=>x>0);
+  const seN=dates.filter(d=>hasSE(S.db[d])).length;
+  if(ts.length){
+    const avg=Math.round(ts.reduce((a,b)=>a+b,0)/ts.length);
+    o+='<div class="kpi">'
+      +'<div class="kpi-c"><div class="kpi-v num">'+hmv(avg)+'</div><div class="kpi-k">平均睡眠</div></div>'
+      +'<div class="kpi-c"><div class="kpi-v num">'+(lvs.length?(lvs.reduce((a,b)=>a+b,0)/lvs.length).toFixed(1):'—')+'</div><div class="kpi-k">平均眠気</div></div>'
+      +'<div class="kpi-c"><div class="kpi-v num">'+ts.length+'</div><div class="kpi-k">記録日数</div></div>'
+      +'<div class="kpi-c"><div class="kpi-v num" style="color:'+(seN?'var(--c-med)':'var(--ink)')+'">'+seN+'</div><div class="kpi-k">副作用</div></div>'
+      +'</div>';
+  }
+
+  o+='<div class="ch"><div class="ch-ax"><div class="ch-ax-l"></div><div class="ch-ax-m">'
+    +TICKS.map(h=>'<span class="tick'+(h===12?' k':'')+'" style="left:'+(h/24*100)+'%">'+h+'</span>').join('')
+    +'</div><div class="ch-ax-r">眠気 / 時間</div></div>';
+
+  dates.forEach(d=>{
+    const e=S.db[d],lv=e&&e.lv||0,t=e?totalSleep(e):0,g=new Date(d).getDay();
+    o+='<div class="ch-r'+(wknd(d)?' we':'')+'" onclick="sheet(\''+d+'\')">'
+      +'<div class="ch-d"><span class="ch-dn num">'+(+d.slice(8))+'</span>'
+      +'<span class="ch-dw'+(g===0?' s':g===6?' t':'')+'">'+DW[g]+'</span></div>'
+      +'<div class="ch-b">'+grid()+bars(e,S.db[prevDateStr(d)],S.db[nextDateStr(d)])+'</div>'
+      +'<div class="ch-x"><span class="dot" style="'+lvStyle(lv)+'">'+(lv||'·')+'</span>'
+      +'<span class="hrs">'+(t?hmv(t):'')+'</span></div></div>';
+  });
+
+  o+='<div class="lg">'
+    +'<span class="lg-i"><i class="lg-s" style="background:var(--c-sleep)"></i>睡眠</span>'
+    +'<span class="lg-i"><i class="lg-s" style="background:var(--page);border:1px solid var(--c-sleep)"></i>中途覚醒</span>'
+    +'<span class="lg-i"><i class="lg-s b-doze"></i>うとうと</span>'
+    +'<span class="lg-i"><i class="lg-s" style="background:var(--c-crash)"></i>寝落ち</span>'
+    +'<span class="lg-i"><i class="lg-s" style="background:var(--c-nap)"></i>仮眠</span>'
+    +'<span class="lg-i"><i style="width:0;height:0;border-left:3px solid transparent;border-right:3px solid transparent;border-bottom:5px solid var(--c-med)"></i>服薬</span>'
+    +'<span class="lg-i"><i style="width:1.5px;height:9px;background:var(--c-meal)"></i>食事</span>'
+    +'<span class="lg-i"><i style="width:6px;height:6px;border-radius:50%;background:var(--c-se)"></i>副作用</span>'
+    +'</div></div>';
+  return o;
+}
+function mv(n){
+  const d=new Date(S.month+'-01');d.setMonth(d.getMonth()+n);
+  S.month=d.getFullYear()+'-'+p2(d.getMonth()+1);R();
+}
+
+/* ═══════════ SETTINGS ═══════════ */
+function vSet(){
+  const all=Object.keys(S.db).sort().reverse();
+  let o='<div class="set"><div class="set-h">データ</div><div class="set-b">'
+    +'<p class="set-note">記録はこの端末のブラウザ内（localStorage）に自動保存されます。端末やブラウザを変える前に、必ずJSONで書き出してください。</p>'
+    +'<div style="margin-top:10px">'
+    +'<button class="abtn" onclick="expJSON()">JSONで書き出す</button>'
+    +'<button class="abtn" onclick="expCSV()">CSVで書き出す</button>'
+    +'<label class="abtn" style="cursor:pointer">JSONから読み込む<input type="file" accept=".json" hidden onchange="impJSON(this)"></label>'
+    +'</div></div></div>';
+
+  o+='<div class="set"><div class="set-h">服薬の種類</div><div class="set-b">';
+  S.cfg.meds.forEach((n,i)=>{
+    o+='<div class="li" style="background:var(--sunken);border-radius:8px;padding:7px 10px;margin-bottom:5px">'
+      +'<input class="se-in" style="flex:1" value="'+esc(n)+'" onchange="medCfgRename('+i+',this.value)">'
+      +'<button class="xbtn" onclick="medCfgDel('+i+')">×</button></div>';
+  });
+  if(S.edMedCfg){
+    o+='<div class="ed"><div class="ed-row">'
+      +'<input class="se-in" style="flex:1" placeholder="薬品名" value="'+esc(S.tmpMedCfg||'')+'" oninput="S.tmpMedCfg=this.value" onkeydown="if(event.key===\'Enter\')medCfgAdd()">'
+      +'</div><div class="ed-acts"><button class="btn-p" onclick="medCfgAdd()">追加</button><button class="btn-g" onclick="S.edMedCfg=false;S.tmpMedCfg=\'\';R()">取消</button></div></div>';
+  }else{
+    o+='<button class="addrow" onclick="S.edMedCfg=true;S.tmpMedCfg=\'\';R()">＋ 服薬の種類を追加</button>';
+  }
+  o+='</div></div>';
+
+  o+='<div class="set"><div class="set-h">副作用の種類</div><div class="set-b">'
+    +'<p class="set-note" style="margin-bottom:8px">「その他」は自由記入の項目として常に残ります。</p>';
+  S.cfg.se.forEach((x,i)=>{
+    o+='<div class="li" style="background:var(--sunken);border-radius:8px;padding:7px 10px;margin-bottom:5px">'
+      +'<input class="se-in" style="flex:1" value="'+esc(x.label)+'" onchange="seCfgRename('+i+',this.value)">'
+      +'<button class="xbtn" onclick="seCfgDel('+i+')">×</button></div>';
+  });
+  if(S.edSeCfg){
+    o+='<div class="ed"><div class="ed-row">'
+      +'<input class="se-in" style="flex:1" placeholder="症状名" value="'+esc(S.tmpSeCfg||'')+'" oninput="S.tmpSeCfg=this.value" onkeydown="if(event.key===\'Enter\')seCfgAdd()">'
+      +'</div><div class="ed-acts"><button class="btn-p" onclick="seCfgAdd()">追加</button><button class="btn-g" onclick="S.edSeCfg=false;S.tmpSeCfg=\'\';R()">取消</button></div></div>';
+  }else{
+    o+='<button class="addrow" onclick="S.edSeCfg=true;S.tmpSeCfg=\'\';R()">＋ 副作用の種類を追加</button>';
+  }
+  o+='</div></div>';
+
+  o+='<div class="set"><div class="set-h">記録一覧'+(all.length?'（'+all.length+'日）':'')+'</div>';
+  if(!all.length){o+='<div class="set-b"><p class="set-note" style="color:var(--faint)">まだ記録がありません</p></div>';}
+  else{
+    o+='<div style="border-top:1px solid var(--line)">';
+    all.forEach(d=>{
+      const e=S.db[d],t=totalSleep(e),g=new Date(d).getDay();
+      o+='<div class="hi" onclick="sheet(\''+d+'\')">'
+        +'<span class="hi-d num" style="'+(g===0?'color:#b8362a':g===6?'color:#2b70ef':'')+'">'+d.replace(/-/g,'/')+'（'+DW[g]+'）</span>'
+        +'<div class="hi-m">'+grid()+bars(e,S.db[prevDateStr(d)],S.db[nextDateStr(d)])+'</div>'
+        +'<span class="hi-x">'+(t?hmv(t):'')+'</span></div>';
+    });
+    o+='</div>';
+  }
+  o+='</div>';
+  return o;
+}
+
+/* ═══════════ SHEET ═══════════ */
+function sheet(d){
+  const e=S.db[d],g=new Date(d).getDay();
+  let b='';
+  if(e){
+    if(e.sleep.length){
+      b+='<div class="dsec">就寝・起床</div>';
+      e.sleep.forEach(x=>{
+        const u=dur(x.sh,x.sm,x.wh,x.wm);const wk=blockWakeMin(x);
+        const net=u?Math.max(u.t-wk,0):null;
+        b+='<div class="dl"><span class="dl-k num">'+T(x.sh,x.sm)+' → '+T(x.wh,x.wm)+'</span><span class="dl-v" style="color:var(--pri)">'+(net!=null?hm({h:net/60|0,m:net%60}):'')+'</span></div>';
+        (x.wake||[]).forEach(w=>{
+          b+='<div class="dl" style="padding-left:12px"><span class="dl-k" style="color:var(--faint)">└ 覚醒</span><span class="dl-v num" style="color:var(--faint)">'+T(w.h,w.m)+' → '+T(w.eh,w.em)+'</span></div>';
+        });
+      });
+      const t=totalSleep(e);
+      if(t)b+='<div class="dl"><span class="dl-k">合計（正味）</span><span class="dl-v num" style="font-weight:600">'+hmv(t)+'</span></div>';
+    }
+    if(e.naps.length){
+      b+='<div class="dsec">日中の眠気</div>';
+      e.naps.forEach(n=>b+='<div class="dl"><span class="dl-k">'+NAPL[n.type]+'</span><span class="dl-v num">'+T(n.sh,n.sm)+' → '+T(n.eh,n.em)+'</span></div>');
+    }
+    if(e.meds.length){
+      b+='<div class="dsec">服薬</div>';
+      e.meds.forEach(m=>b+='<div class="dl"><span class="dl-k">'+esc(m.name)+' '+m.dose+'錠</span><span class="dl-v num">'+T(m.h,m.m)+'</span></div>');
+    }
+    const L=e.meals,ml=[];
+    if(L.lunch.h!=='')ml.push(['昼食',T(L.lunch.h,L.lunch.m)]);
+    if(L.dinner.h!=='')ml.push(['夕食',T(L.dinner.h,L.dinner.m)]);
+    L.extra.forEach(x=>{if(x.h!=='')ml.push(['おやつ',T(x.h,x.m)])});
+    if(ml.length){b+='<div class="dsec">食事</div>'+ml.map(x=>'<div class="dl"><span class="dl-k">'+x[0]+'</span><span class="dl-v num">'+x[1]+'</span></div>').join('');}
+    if(e.lv){const L2=['','なし','軽度','中等度','強い','極めて強い'];
+      b+='<div class="dsec">眠気評価</div><div class="dl"><span class="dl-k">レベル</span><span class="dl-v">'+e.lv+' — '+L2[e.lv]+'</span></div>';}
+    if(hasSE(e)){
+      b+='<div class="dsec">副作用</div>';
+      e.se.list.slice().sort((x,y)=>String(x.h).padStart(2,'0').localeCompare(String(y.h).padStart(2,'0')))
+        .forEach(x=>b+='<div class="dl"><span class="dl-k">'+esc(seFull(x))+'</span><span class="dl-v num">'+T(x.h,x.m)+'</span></div>');
+    }
+    if(e.note)b+='<div class="dsec">メモ</div><div style="font-size:13px;color:var(--body);line-height:1.7;padding:6px 0">'+esc(e.note).replace(/\n/g,'<br>')+'</div>';
+    if(!b)b='<div class="empty">記録がありません</div>';
+  }else b='<div class="empty">記録がありません</div>';
+
+  const bg=document.createElement('div');
+  bg.className='sheet-bg';
+  bg.innerHTML='<div class="sheet"><div class="sheet-grab"></div>'
+    +'<div class="sheet-h"><span class="sheet-t">'+d.replace(/-/g,'/')+'（'+DW[g]+'）</span></div>'
+    +'<div class="sheet-b">'
+    +'<div class="ch-b" style="height:22px;margin-bottom:6px">'+grid()+bars(e,S.db[prevDateStr(d)],S.db[nextDateStr(d)])+'</div>'
+    +'<div style="display:flex;justify-content:space-between;font-size:9px;color:var(--faint);margin-bottom:8px" class="num">'+TICKS.map(h=>'<span>'+h+'</span>').join('')+'</div>'
+    +b+'</div>'
+    +'<div class="sheet-acts">'
+    +'<button class="btn-g" onclick="closeSheet()">閉じる</button>'
+    +'<button class="btn-p" onclick="S.date=\''+d+'\';go(\'record\');closeSheet()">この日を編集</button>'
+    +'</div></div>';
+  bg.onclick=ev=>{if(ev.target===bg)closeSheet();};
+  document.body.appendChild(bg);
+}
+function closeSheet(){const s=document.querySelector('.sheet-bg');if(s)s.remove();}
+
+/* ═══════════ IO ═══════════ */
+function seCol(list,key){return list.filter(x=>x.t===key).map(x=>(x.h!==''?T(x.h,x.m):'○')+(x.sv?'/'+SVLBL[x.sv]:'')).join(';');}
+function expJSON(){
+  dl(new Blob([JSON.stringify(S.db,null,2)],{type:'application/json'}),'sleep-diary-'+td()+'.json');
+}
+function expCSV(){
+  const seHeaders=S.cfg.se.map(x=>x.label);
+  const rows=[['日付','曜日','入眠','起床','睡眠時間(分)','眠気','うとうと','寝落ち','仮眠','服薬','昼食','夕食'].concat(seHeaders,['副作用その他','メモ'])];
+  Object.keys(S.db).sort().forEach(d=>{
+    const e=E(d),f=e.sleep[0]||{},L=e.meals,sl=e.se.list;
+    const seCols=S.cfg.se.map(x=>seCol(sl,x.key));
+    rows.push([d,dw(d),T(f.sh,f.sm),T(f.wh,f.wm),totalSleep(e),e.lv||0,
+      e.naps.filter(n=>n.type==='doze').length,
+      e.naps.filter(n=>n.type==='crash').length,
+      e.naps.filter(n=>n.type==='nap').length,
+      e.meds.map(m=>m.name+m.dose+'錠@'+T(m.h,m.m)).join(' / '),
+      T(L.lunch.h,L.lunch.m),T(L.dinner.h,L.dinner.m)]
+      .concat(seCols,[
+      sl.filter(x=>x.t==='other').map(x=>(x.label||'')+(x.sv?'/'+SVLBL[x.sv]:'')+(x.h!==''?'@'+T(x.h,x.m):'')).join(' / ').replace(/[,\n]/g,' '),
+      (e.note||'').replace(/[,\n]/g,' ')]));
+  });
+  dl(new Blob(['\uFEFF'+rows.map(r=>r.join(',')).join('\n')],{type:'text/csv;charset=utf-8'}),'sleep-diary-'+td()+'.csv');
+}
+function dl(blob,name){
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;a.click();
+  setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+}
+function impJSON(inp){
+  const f=inp.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=ev=>{try{Object.assign(S.db,JSON.parse(ev.target.result));put();R();toast('読み込みました');}catch(e){toast('読み込みに失敗しました');}};
+  r.readAsText(f);inp.value='';
+}
+
+/* ═══════════ ACTIONS ═══════════ */
+function ent(ev){if(ev.key==='Enter')ev.target.blur();}
+function goToday(){S.date=td();R();}
+function sAdd(){E(S.date).sleep.push({sh:'',sm:0,wh:'',wm:0,wake:[]});put();R();}
+function sDel(i){E(S.date).sleep.splice(i,1);put();R();}
+function sSet(i,which,v){
+  const p=parseT(v),e=E(S.date);if(!e.sleep[i])return;
+  if(!p){if(which){e.sleep[i].wh='';e.sleep[i].wm=0;}else{e.sleep[i].sh='';e.sleep[i].sm=0;}}
+  else if(which){e.sleep[i].wh=p.h;e.sleep[i].wm=p.m;}
+  else{e.sleep[i].sh=p.h;e.sleep[i].sm=p.m;}
+  put();R();
+}
+function wkStart(blockIdx){S.wkEdit={block:blockIdx};S.tmpWk=null;R();}
+function wkCancel(){S.wkEdit=null;S.tmpWk=null;R();}
+function wkT(which,v){const p=parseT(v);if(!p)return;S.tmpWk=S.tmpWk||{};
+  if(which){S.tmpWk.eh=p.h;S.tmpWk.em=p.m;}else{S.tmpWk.h=p.h;S.tmpWk.m=p.m;}}
+function wkOk(blockIdx){
+  const t=S.tmpWk;
+  if(!t||t.h==null){toast('開始時刻を入力してください');return;}
+  const e=E(S.date),b=e.sleep[blockIdx];if(!b)return;
+  if(!b.wake)b.wake=[];
+  b.wake.push({h:t.h,m:t.m||0,eh:t.eh!=null?t.eh:t.h,em:t.em||0});
+  S.wkEdit=null;S.tmpWk=null;put();R();
+}
+function wkDel(blockIdx,wakeIdx){
+  const e=E(S.date),b=e.sleep[blockIdx];if(!b||!b.wake)return;
+  b.wake.splice(wakeIdx,1);put();R();
+}
+function nTog(k){S.napType=S.napType===k?null:k;S.tmpNap=null;R();}
+function nCancel(){S.napType=null;S.tmpNap=null;R();}
+function nT(which,v){const p=parseT(v);if(!p)return;S.tmpNap=S.tmpNap||{};
+  if(which){S.tmpNap.eh=p.h;S.tmpNap.em=p.m;}else{S.tmpNap.sh=p.h;S.tmpNap.sm=p.m;}}
+function nOk(){
+  const t=S.tmpNap;if(!t||t.sh==null){toast('開始時刻を入力してください');return;}
+  E(S.date).naps.push({type:S.napType,sh:t.sh,sm:t.sm||0,eh:t.eh!=null?t.eh:t.sh,em:t.em||0});
+  S.napType=null;S.tmpNap=null;put();R();
+}
+function nDel(i){E(S.date).naps.splice(i,1);put();R();}
+function mT(v){const p=parseT(v);if(!p)return;S.tmpMed=S.tmpMed||{};S.tmpMed.h=p.h;S.tmpMed.m=p.m;}
+function mOk(){
+  const n=document.getElementById('mn').value,d=parseFloat(document.getElementById('md').value)||1;
+  const t=S.tmpMed||{};
+  if(t.h==null){toast('時刻を入力してください');return;}
+  E(S.date).meds.push({name:n,dose:d,h:t.h,m:t.m||0});
+  S.edMed=false;S.tmpMed=null;put();R();
+}
+function mDel(i){E(S.date).meds.splice(i,1);put();R();}
+function medCfgAdd(){
+  const n=(S.tmpMedCfg||'').trim();
+  if(!n){toast('薬品名を入力してください');return;}
+  if(S.cfg.meds.indexOf(n)>-1){toast('すでにあります');return;}
+  S.cfg.meds.push(n);S.edMedCfg=false;S.tmpMedCfg='';putCfg();R();
+}
+function medCfgDel(i){S.cfg.meds.splice(i,1);putCfg();R();}
+function medCfgRename(i,v){
+  const n=v.trim();if(!n)return;
+  S.cfg.meds[i]=n;putCfg();R();
+}
+function seCfgAdd(){
+  const n=(S.tmpSeCfg||'').trim();
+  if(!n){toast('症状名を入力してください');return;}
+  const key='c'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+  S.cfg.se.push({key,label:n});S.edSeCfg=false;S.tmpSeCfg='';putCfg();R();
+}
+function seCfgDel(i){S.cfg.se.splice(i,1);putCfg();R();}
+function seCfgRename(i,v){
+  const n=v.trim();if(!n)return;
+  S.cfg.se[i].label=n;putCfg();R();
+}
+function mealSet(k,v){
+  const p=parseT(v),e=E(S.date);
+  e.meals[k]=p?{h:p.h,m:p.m}:{h:'',m:0};put();R();
+}
+function exAdd(){E(S.date).meals.extra.push({h:'',m:0});put();R();}
+function exSet(i,v){const p=parseT(v),e=E(S.date);e.meals.extra[i]=p?{h:p.h,m:p.m}:{h:'',m:0};put();R();}
+function exDel(i){E(S.date).meals.extra.splice(i,1);put();R();}
+function setLv(n){const e=E(S.date);e.lv=e.lv===n?0:n;put();R();}
+function seTog(k){S.seType=S.seType===k?null:k;S.tmpSe=null;R();}
+function seCancel(){S.seType=null;S.tmpSe=null;R();}
+function seT(v){const p=parseT(v);if(!p)return;S.tmpSe=S.tmpSe||{};S.tmpSe.h=p.h;S.tmpSe.m=p.m;}
+function svPick(n){S.tmpSe=S.tmpSe||{};S.tmpSe.sv=S.tmpSe.sv===n?0:n;R();}
+function seNow(){const n=now();S.tmpSe=S.tmpSe||{};S.tmpSe.h=n.h;S.tmpSe.m=n.m;R();}
+function seOk(){
+  const t=S.tmpSe||{};
+  if(t.h==null){toast('時刻を入力してください');return;}
+  if(S.seType==='other'&&!(t.label||'').trim()){toast('症状名を入力してください');return;}
+  const it={t:S.seType,h:t.h,m:t.m||0,sv:t.sv||0};
+  if(S.seType==='other')it.label=t.label.trim();
+  E(S.date).se.list.push(it);
+  S.seType=null;S.tmpSe=null;put();R();
+}
+function seDel(i){E(S.date).se.list.splice(i,1);put();R();}
+function seCycleSv(i){
+  const e=E(S.date),it=e.se.list[i];if(!it)return;
+  it.sv=((it.sv||0)+1)%4;put();R();
+}
+function seTime(i,v){
+  const p=parseT(v),e=E(S.date);if(!e.se.list[i])return;
+  if(p){e.se.list[i].h=p.h;e.se.list[i].m=p.m;}else{e.se.list[i].h='';e.se.list[i].m=0;}
+  put();R();
+}
+function seQuick(k){
+  const n=now();
+  if(k==='other'){S.view='record';S.seType='other';S.tmpSe={h:n.h,m:n.m};R();
+    setTimeout(()=>toast('症状名を入力してください'),200);return;}
+  E(S.date).se.list.push({t:k,h:n.h,m:n.m});
+  put();R();toast(curSEL()[k]+' '+T(n.h,n.m));
+}
+
+/* ═══════════ URL ═══════════ */
+function urlAction(){
+  const p=new URLSearchParams(location.search),a=p.get('quick');
+  if(!a)return;
+  const M={sleep_start:1,sleep_end:1,sleep_full:1,lunch:1,dinner:1,snack:1,modafinil:1,loxonin:1};
+  if(!M[a])return;
+
+  if(a==='sleep_full'){
+    // 就寝・起床が両方確定済みのデータを1回で完了記録する（Health連携用）
+    const bt=parseT(p.get('bedtime')||''),wt=parseT(p.get('time')||'');
+    const bd=p.get('bed_date'),wd=p.get('date')||td();
+    if(!bt||!wt||!bd){history.replaceState(null,'',location.pathname);S.view='quick';return;}
+    S.date=wd;
+    E(wd).sleep.push({sh:bt.h,sm:bt.m,wh:wt.h,wm:wt.m});
+    put();
+    history.replaceState(null,'',location.pathname);
+    S.view='quick';
+    setTimeout(()=>toast('睡眠を記録しました '+T(bt.h,bt.m)+' → '+T(wt.h,wt.m)),300);
+    return;
+  }
+
+  const tt=p.get('time'),d=p.get('date')||td();
+  const t=tt?parseT(tt):now();
+  if(!t)return;
+  S.date=d;
+  const e=E(d);
+  if(a==='sleep_start'){
+    e.sleep.push({sh:t.h,sm:t.m,wh:'',wm:0});
+    S.pending={date:d,sh:t.h,sm:t.m};putPending();
+  }else if(a==='sleep_end'){
+    const open=findOpenSleep();
+    if(open){
+      S.db[open.date].sleep.splice(open.idx,1);
+      e.sleep.push({sh:open.sh,sm:open.sm,wh:t.h,wm:t.m});
+    }else{
+      const l=e.sleep[e.sleep.length-1];
+      if(l&&l.wh===''){l.wh=t.h;l.wm=t.m;}else e.sleep.push({sh:'',sm:0,wh:t.h,wm:t.m});
+    }
+    S.pending=null;putPending();
+  }
+  else if(a==='lunch')e.meals.lunch={h:t.h,m:t.m};
+  else if(a==='dinner')e.meals.dinner={h:t.h,m:t.m};
+  else if(a==='snack')e.meals.extra.push({h:t.h,m:t.m});
+  else if(a==='modafinil')e.meds.push({name:'モディオダール',dose:1,h:t.h,m:t.m});
+  else if(a==='loxonin')e.meds.push({name:'ロキソニン',dose:1,h:t.h,m:t.m});
+  put();
+  history.replaceState(null,'',location.pathname);
+  S.view='quick';
+  setTimeout(()=>toast('記録しました '+T(t.h,t.m)),300);
+}
+
+/* ═══════════ RENDER ═══════════ */
+function go(v){S.view=v;R();}
+function R(){
+  document.getElementById('dp').value=S.date;
+  document.getElementById('tdb').disabled=(S.date===td());
+  document.querySelectorAll('.tb-b').forEach(b=>b.setAttribute('aria-selected',b.dataset.v===S.view));
+  const m=document.getElementById('main');
+  m.innerHTML=S.view==='quick'?vQuick():S.view==='record'?vRecord():S.view==='chart'?vChart():vSet();
+  window.scrollTo(0,0);
+}
+document.querySelectorAll('.tb-b').forEach(b=>b.onclick=()=>go(b.dataset.v));
+document.getElementById('dp').onchange=ev=>{S.date=ev.target.value;R();};
+document.addEventListener('keydown',ev=>{if(ev.key==='Escape')closeSheet();});
+
+urlAction();
+R();
+</script>
+</body>
+</html>
