@@ -227,13 +227,13 @@ main{padding:16px 16px 24px}
 .se-in:focus{background:#fff;border-color:var(--pri);box-shadow:0 0 0 3px var(--pri-soft)}
 .se-in::placeholder{color:var(--faint)}
 .se-mark{width:7px;height:7px;border-radius:50%;background:var(--c-med);flex-shrink:0}
-.cfg-grid2{display:grid;grid-template-columns:1fr 1fr;gap:6px}
 .cfg-flow{display:flex;flex-wrap:wrap;gap:6px}
-.cfg-tag{display:flex;align-items:center;gap:3px;padding:5px 6px 5px 11px;border-radius:14px;background:var(--sunken);border:1px solid var(--line)}
-.cfg-tag input{flex:1;min-width:0;border:none;background:none;font:inherit;font-size:12px;color:var(--ink);padding:0;outline:none}
-.cfg-tag button{flex-shrink:0;background:none;border:none;color:var(--faint);font-size:13px;cursor:pointer;padding:0 3px;line-height:1;border-radius:50%}
+.cfg-tag{display:inline-flex;align-items:center;gap:4px;padding:6px 7px 6px 11px;border-radius:14px;background:var(--sunken);border:1px solid var(--line)}
+.cfg-tag-text{outline:none;white-space:pre;font-size:12px;color:var(--ink);min-width:1ch;max-width:40vw;overflow:hidden;text-overflow:ellipsis}
+.cfg-tag-text[data-empty="true"]:before{content:attr(data-ph);color:var(--faint)}
+.cfg-tag button{flex-shrink:0;background:none;border:none;color:var(--faint);font-size:13px;cursor:pointer;padding:0 2px;line-height:1;border-radius:50%}
 .cfg-tag button:hover{color:var(--bad)}
-.cfg-add-tag{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border-radius:14px;background:none;border:1px dashed var(--line-strong);color:var(--faint);font:inherit;font-size:12px;cursor:pointer}
+.cfg-add-tag{display:inline-flex;align-items:center;gap:5px;padding:6px 12px;border-radius:14px;background:none;border:1px dashed var(--line-strong);color:var(--faint);font:inherit;font-size:12px;cursor:pointer}
 .cfg-add-tag:hover{color:var(--body);border-color:var(--body)}
 .svbadge{font-size:10px;padding:3px 9px;border-radius:10px;border:1px solid var(--line);background:none;color:var(--faint);cursor:pointer;font:inherit;flex-shrink:0;transition:.15s}
 .svbadge:hover{border-color:var(--line-strong)}
@@ -991,36 +991,35 @@ function vSet(){
 
   o+='<div class="set"><div class="set-h">服薬の種類</div><div class="set-b"><div class="cfg-flow">';
   S.cfg.meds.forEach((n,i)=>{
-    o+='<div class="cfg-tag" style="width:'+Math.max(n.length+3,5)+'ch">'
-      +'<input value="'+esc(n)+'" onchange="medCfgRename('+i+',this.value)">'
+    o+='<div class="cfg-tag">'
+      +'<span class="cfg-tag-text" contenteditable="true" onblur="medCfgRename('+i+',this.textContent)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();this.blur();}">'+esc(n)+'</span>'
       +'<button onclick="medCfgDel('+i+')">×</button></div>';
   });
   if(S.edMedCfg){
-    o+='<div class="cfg-tag" style="width:12ch">'
-      +'<input placeholder="薬品名" value="'+esc(S.tmpMedCfg||'')+'" oninput="S.tmpMedCfg=this.value" onblur="medCfgAdd()" onkeydown="if(event.key===\'Enter\')this.blur()" autofocus>'
+    o+='<div class="cfg-tag">'
+      +'<span class="cfg-tag-text" contenteditable="true" data-ph="薬品名" data-empty="true" onfocus="this.removeAttribute(\'data-empty\')" oninput="S.tmpMedCfg=this.textContent;if(!this.textContent)this.setAttribute(\'data-empty\',\'true\')" onblur="medCfgAdd(this.textContent)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();this.blur();}" id="newMedTag"></span>'
       +'</div>';
   }else{
-    o+='<button class="cfg-add-tag" onclick="S.edMedCfg=true;S.tmpMedCfg=\'\';R()">＋ 追加</button>';
+    o+='<button class="cfg-add-tag" onclick="S.edMedCfg=true;S.tmpMedCfg=\'\';R();focusNewTag(\'newMedTag\')">＋ 追加</button>';
   }
   o+='</div></div></div>';
 
   o+='<div class="set"><div class="set-h">副作用の種類</div><div class="set-b">'
     +'<p class="set-note" style="margin-bottom:8px">「その他」は自由記入の項目として常に残ります。</p>'
-    +'<div class="cfg-grid2">';
+    +'<div class="cfg-flow">';
   S.cfg.se.forEach((x,i)=>{
     o+='<div class="cfg-tag">'
-      +'<input value="'+esc(x.label)+'" onchange="seCfgRename('+i+',this.value)">'
+      +'<span class="cfg-tag-text" contenteditable="true" onblur="seCfgRename('+i+',this.textContent)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();this.blur();}">'+esc(x.label)+'</span>'
       +'<button onclick="seCfgDel('+i+')">×</button></div>';
   });
-  o+='</div>';
   if(S.edSeCfg){
-    o+='<div class="cfg-tag" style="width:12ch;margin-top:6px">'
-      +'<input placeholder="症状名" value="'+esc(S.tmpSeCfg||'')+'" oninput="S.tmpSeCfg=this.value" onblur="seCfgAdd()" onkeydown="if(event.key===\'Enter\')this.blur()" autofocus>'
+    o+='<div class="cfg-tag">'
+      +'<span class="cfg-tag-text" contenteditable="true" data-ph="症状名" data-empty="true" onfocus="this.removeAttribute(\'data-empty\')" oninput="S.tmpSeCfg=this.textContent;if(!this.textContent)this.setAttribute(\'data-empty\',\'true\')" onblur="seCfgAdd(this.textContent)" onkeydown="if(event.key===\'Enter\'){event.preventDefault();this.blur();}" id="newSeTag"></span>'
       +'</div>';
   }else{
-    o+='<button class="cfg-add-tag" style="margin-top:6px" onclick="S.edSeCfg=true;S.tmpSeCfg=\'\';R()">＋ 追加</button>';
+    o+='<button class="cfg-add-tag" onclick="S.edSeCfg=true;S.tmpSeCfg=\'\';R();focusNewTag(\'newSeTag\')">＋ 追加</button>';
   }
-  o+='</div></div>';
+  o+='</div></div></div>';
 
   o+='<div class="set"><div class="set-h">記録一覧'+(all.length?'（'+all.length+'日）':'')+'</div>';
   if(!all.length){o+='<div class="set-b"><p class="set-note" style="color:var(--faint)">まだ記録がありません</p></div>';}
@@ -1179,26 +1178,27 @@ function mOk(){
   S.edMed=false;S.tmpMed=null;put();R();
 }
 function mDel(i){E(S.date).meds.splice(i,1);put();R();}
-function medCfgAdd(){
-  const n=(S.tmpMedCfg||'').trim();
+function focusNewTag(id){const el=document.getElementById(id);if(el)el.focus();}
+function medCfgAdd(txt){
+  const n=(txt!=null?txt:(S.tmpMedCfg||'')).trim();
   if(!n){S.edMedCfg=false;S.tmpMedCfg='';R();return;}
   if(S.cfg.meds.indexOf(n)>-1){toast('すでにあります');S.edMedCfg=false;S.tmpMedCfg='';R();return;}
   S.cfg.meds.push(n);S.edMedCfg=false;S.tmpMedCfg='';putCfg();R();
 }
 function medCfgDel(i){S.cfg.meds.splice(i,1);putCfg();R();}
 function medCfgRename(i,v){
-  const n=v.trim();if(!n)return;
+  const n=v.trim();if(!n){R();return;}
   S.cfg.meds[i]=n;putCfg();R();
 }
-function seCfgAdd(){
-  const n=(S.tmpSeCfg||'').trim();
+function seCfgAdd(txt){
+  const n=(txt!=null?txt:(S.tmpSeCfg||'')).trim();
   if(!n){S.edSeCfg=false;S.tmpSeCfg='';R();return;}
   const key='c'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
   S.cfg.se.push({key,label:n});S.edSeCfg=false;S.tmpSeCfg='';putCfg();R();
 }
 function seCfgDel(i){S.cfg.se.splice(i,1);putCfg();R();}
 function seCfgRename(i,v){
-  const n=v.trim();if(!n)return;
+  const n=v.trim();if(!n){R();return;}
   S.cfg.se[i].label=n;putCfg();R();
 }
 function mealSet(k,v){
